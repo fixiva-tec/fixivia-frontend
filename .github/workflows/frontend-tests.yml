@@ -1,0 +1,26 @@
+name: frontend unit tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: frontend unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Run unit tests with coverage gate
+        run: |
+          flutter test --coverage
+          dart run tool/coverage_gate.dart coverage/lcov.info 80

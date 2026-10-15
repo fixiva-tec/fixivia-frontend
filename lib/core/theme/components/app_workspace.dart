@@ -193,33 +193,47 @@ class _Header extends StatelessWidget {
               height: 64,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    brand,
-                    if (roleLabel != null) ...[
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                        ),
-                        child: Text(
-                          roleLabel!,
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Narrow phones can't fit brand + badge + account, so
+                    // the badge yields; the role stays in the account menu.
+                    final showBadge =
+                        roleLabel != null && constraints.maxWidth >= 480;
+                    return Row(
+                      children: [
+                        brand,
+                        if (showBadge) ...[
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
+                            ),
+                            child: Text(
+                              roleLabel!,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: account,
                           ),
                         ),
-                      ),
-                    ],
-                    const Spacer(),
-                    account,
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
