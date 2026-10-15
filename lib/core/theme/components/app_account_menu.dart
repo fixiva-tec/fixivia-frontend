@@ -123,16 +123,18 @@ class _AppAccountMenuState extends State<AppAccountMenu> {
                   children: [
                     FxAvatar(name: widget.name, size: 30),
                     const SizedBox(width: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 140),
-                      child: Text(
-                        widget.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13.5,
-                          color: fg,
+                    Flexible(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 140),
+                        child: Text(
+                          widget.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                            color: fg,
+                          ),
                         ),
                       ),
                     ),

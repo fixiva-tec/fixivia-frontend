@@ -178,7 +178,12 @@ class PartnersPage extends StatefulWidget {
 class _PartnersPageState extends State<PartnersPage> {
   late Future<dynamic> _future = widget.api.get('/v1/partners');
 
-  void _reload() => setState(() => _future = widget.api.get('/v1/partners'));
+  void _reload() {
+    final future = widget.api.get('/v1/partners');
+    setState(() {
+      _future = future;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -356,8 +361,12 @@ class AdminRequestsPage extends StatefulWidget {
 class _AdminRequestsPageState extends State<AdminRequestsPage> {
   late Future<dynamic> _future = widget.api.get('/v1/partner-admin-requests');
 
-  void _reload() =>
-      setState(() => _future = widget.api.get('/v1/partner-admin-requests'));
+  void _reload() {
+    final future = widget.api.get('/v1/partner-admin-requests');
+    setState(() {
+      _future = future;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

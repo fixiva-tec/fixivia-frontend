@@ -47,6 +47,7 @@ class AppSelect<T> extends StatelessWidget {
           DropdownButtonFormField<T>(
             initialValue: initialValue,
             onChanged: onChanged,
+            isExpanded: true,
             menuMaxHeight: 320,
             icon: const Icon(
               Icons.keyboard_arrow_down_rounded,
@@ -61,7 +62,10 @@ class AppSelect<T> extends StatelessWidget {
             ),
             decoration: InputDecoration(
               hintText: placeholder,
-              hintStyle: TextStyle(color: AppColors.subOf(context)),
+              hintStyle: TextStyle(
+                color: AppColors.subOf(context),
+                overflow: TextOverflow.ellipsis,
+              ),
               filled: true,
               fillColor: dark
                   ? AppColors.charcoalSoft.withValues(alpha: 0.6)
@@ -90,7 +94,13 @@ class AppSelect<T> extends StatelessWidget {
               for (final item in items)
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: selectedOptionBuilder(context, item.value),
+                  // Long option labels ellipsize instead of overflowing
+                  // the button row; plain Text builders inherit this.
+                  child: DefaultTextStyle.merge(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    child: selectedOptionBuilder(context, item.value),
+                  ),
                 ),
             ],
             items: [
