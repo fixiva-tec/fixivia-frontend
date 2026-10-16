@@ -163,35 +163,4 @@ void main() {
       );
     });
   });
-
-  group('injectDevUsers', () {
-    test('maps accounts, tolerates missing list', () async {
-      MockClient client(String body) =>
-          MockClient((_) async => http.Response(body, 200));
-      final two = HttpAuthApi(baseUrl: 'http://test', client: client(
-        '{"accounts":[{"token":"t1","user":{"id":"u1","role":"customer",'
-        '"full_name":"A","partner_id":null}},{"token":"t2",'
-        '"user":{"id":"u2","role":"master_admin","full_name":"M",'
-        '"partner_id":null}}]}',
-      ));
-      final rows = await two.injectDevUsers();
-      expect(rows, hasLength(2));
-      expect(rows[0].user.role, UserRole.customer);
-      expect(rows[1].user.role, UserRole.masterAdmin);
-
-      final missing = HttpAuthApi(
-        baseUrl: 'http://test',
-        client: client('{}'),
-      );
-      expect(await missing.injectDevUsers(), isEmpty);
-    });
-
-    test('non-200 yields empty', () async {
-      final api = HttpAuthApi(
-        baseUrl: 'http://test',
-        client: MockClient((_) async => http.Response('x', 404)),
-      );
-      expect(await api.injectDevUsers(), isEmpty);
-    });
-  });
 }

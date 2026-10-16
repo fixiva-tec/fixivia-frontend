@@ -331,46 +331,6 @@ void main() {
     });
   });
 
-  group('AuthScreen dev accounts', () {
-    AuthResult dev(String name, UserRole role) => AuthResult(
-      token: 'tok-$name',
-      user: SessionUser(id: 'u-$name', role: role, fullName: name),
-    );
-
-    testWidgets('all five roles render and log in', (tester) async {
-      final accounts = [
-        dev('M', UserRole.masterAdmin),
-        dev('O', UserRole.partnerOwner),
-        dev('P', UserRole.partnerAdmin),
-        dev('T', UserRole.servicePartner),
-        dev('C', UserRole.customer),
-      ];
-      final api = FakeAuthApi()..devUsers = accounts;
-      AuthResult? authed;
-      await pumpAuth(tester, api, onAuth: (r) => authed = r);
-      // Login mode hides the register role pills, so dev chips are unique.
-      await tester.tap(find.byKey(const Key('auth_mode_login')));
-      await tester.pumpAndSettle();
-      for (final label in ['Master', 'Owner', 'P-admin', 'Technician', 'Customer']) {
-        expect(find.text(label), findsOneWidget);
-      }
-      await tester.ensureVisible(find.text('Technician'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Technician'));
-      await tester.pump();
-      expect(authed?.token, 'tok-T');
-    });
-
-    testWidgets('empty list and load failure hide the section', (tester) async {
-      await pumpAuth(tester, FakeAuthApi());
-      expect(find.text('Dev only — enter as'), findsNothing);
-
-      final failing = FakeAuthApi()..injectError = Exception('no dev');
-      await pumpAuth(tester, failing);
-      expect(find.text('Dev only — enter as'), findsNothing);
-    });
-  });
-
   group('AuthScreen layouts', () {
     testWidgets('desktop brand pane shows tagline, points, and stats',
         (tester) async {

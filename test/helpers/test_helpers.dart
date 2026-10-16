@@ -18,11 +18,9 @@ class FakeAuthApi implements AuthApi {
   Object? verifyError;
   AuthResult? verifyResult;
   List<Map<String, dynamic>> partners = [];
-  List<AuthResult> devUsers = [];
 
   final List<Map<String, String>> requested = [];
   final List<Map<String, String?>> verified = [];
-  Object? injectError;
 
   @override
   Future<void> requestOtp({
@@ -64,12 +62,6 @@ class FakeAuthApi implements AuthApi {
             partnerId: partnerId,
           ),
         );
-  }
-
-  @override
-  Future<List<AuthResult>> injectDevUsers() async {
-    if (injectError != null) throw injectError!;
-    return devUsers;
   }
 }
 

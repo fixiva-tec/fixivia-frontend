@@ -71,28 +71,4 @@ class HttpAuthApi implements AuthApi {
       ),
     );
   }
-
-  @override
-  Future<List<AuthResult>> injectDevUsers() async {
-    final res = await _client.post(Uri.parse('$baseUrl/v1/dev/inject-users'));
-    if (res.statusCode != 200) return [];
-    final json = jsonDecode(res.body) as Map<String, dynamic>;
-    final list = json['accounts'] as List<dynamic>? ?? [];
-    return [
-      for (final raw in list)
-        () {
-          final row = raw as Map<String, dynamic>;
-          final user = row['user'] as Map<String, dynamic>;
-          return AuthResult(
-            token: row['token'] as String,
-            user: SessionUser(
-              id: user['id'] as String,
-              role: roleFromApi(user['role'] as String),
-              fullName: user['full_name'] as String,
-              partnerId: user['partner_id'] as String?,
-            ),
-          );
-        }(),
-    ];
-  }
 }

@@ -38,8 +38,6 @@ class _FakeAuthApi implements AuthApi {
     throw UnimplementedError();
   }
 
-  @override
-  Future<List<AuthResult>> injectDevUsers() async => [];
 }
 
 Widget _harness(Widget child) {
