@@ -18,6 +18,4 @@ abstract class AuthApi {
     String? partnerId,
   });
 
-  /// Dev-only. Empty list when the API is not in flavor=dev.
-  Future<List<AuthResult>> injectDevUsers();
 }

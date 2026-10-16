@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/components/components.dart';
 import '../../core/validators.dart';
@@ -35,24 +33,6 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _partnerId;
   List<Map<String, dynamic>> _partners = [];
   String? _error;
-  List<AuthResult> _devAccounts = [];
-
-  @override
-  void initState() {
-    super.initState();
-    if (kDebugMode) {
-      _loadDevAccounts();
-    }
-  }
-
-  Future<void> _loadDevAccounts() async {
-    try {
-      final list = await widget.api.injectDevUsers();
-      if (!mounted || list.isEmpty) return;
-      setState(() => _devAccounts = list);
-    } catch (_) {}
-  }
-
   @override
   void dispose() {
     _mobile.dispose();
@@ -240,8 +220,6 @@ class _AuthScreenState extends State<AuthScreen> {
       onServicePartner: _pickServicePartner,
       onPartnerChanged: (id) => setState(() => _partnerId = id),
       onSubmit: _busy ? null : (_sent ? _verify : _send),
-      devAccounts: _devAccounts,
-      onDevLogin: widget.onAuthenticated,
     );
   }
 
@@ -447,8 +425,6 @@ class _AuthFormCard extends StatelessWidget {
     required this.onServicePartner,
     required this.onPartnerChanged,
     required this.onSubmit,
-    required this.devAccounts,
-    required this.onDevLogin,
   });
 
   final bool register;
@@ -467,8 +443,6 @@ class _AuthFormCard extends StatelessWidget {
   final VoidCallback onServicePartner;
   final ValueChanged<String?> onPartnerChanged;
   final VoidCallback? onSubmit;
-  final List<AuthResult> devAccounts;
-  final void Function(AuthResult result) onDevLogin;
 
   @override
   Widget build(BuildContext context) {
@@ -605,29 +579,7 @@ class _AuthFormCard extends StatelessWidget {
               size: AppButtonSize.lg,
               showArrow: !busy,
             ),
-            if (kDebugMode && devAccounts.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              const Divider(height: 1, color: AppColors.border),
-              const SizedBox(height: 12),
-              const Text(
-                'Dev only — enter as',
-                style: TextStyle(fontSize: 12, color: Color(0xFF737373)),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final acc in devAccounts)
-                    AppChoice(
-                      label: _devRoleLabel(acc.user.role),
-                      selected: false,
-                      testId: 'auth_dev_login_${acc.user.role.name}',
-                      onTap: () => onDevLogin(acc),
-                    ),
-                ],
-              ),
-            ],
+
           ],
         ),
       ),
@@ -727,14 +679,4 @@ class _Segment extends StatelessWidget {
       ),
     );
   }
-}
-
-String _devRoleLabel(UserRole role) {
-  return switch (role) {
-    UserRole.masterAdmin => 'Master',
-    UserRole.partnerOwner => 'Owner',
-    UserRole.partnerAdmin => 'P-admin',
-    UserRole.servicePartner => 'Technician',
-    UserRole.customer => 'Customer',
-  };
 }
