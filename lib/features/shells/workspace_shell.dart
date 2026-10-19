@@ -152,7 +152,8 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => _BookingDetail(api: widget.api, id: id),
+        builder: (_) =>
+            _BookingDetail(api: widget.api, id: id, role: widget.user.role),
       ),
     );
   }
@@ -384,8 +385,11 @@ class _CustomerHome extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              _BookingDetail(api: api, id: '${b['id']}'),
+                          builder: (_) => _BookingDetail(
+                            api: api,
+                            id: '${b['id']}',
+                            role: user.role,
+                          ),
                         ),
                       ),
                     ),
@@ -448,9 +452,10 @@ class _HomeServiceCard extends StatelessWidget {
 }
 
 class _BookingDetail extends StatefulWidget {
-  const _BookingDetail({required this.api, required this.id});
+  const _BookingDetail({required this.api, required this.id, required this.role});
   final ApiClient api;
   final String id;
+  final UserRole role;
 
   @override
   State<_BookingDetail> createState() => _BookingDetailState();
@@ -489,6 +494,19 @@ class _BookingDetailState extends State<_BookingDetail> {
           }
           final b = snap.data as Map<String, dynamic>;
           final status = '${b['status'] ?? 'open'}';
+          // Role-appropriate actions only; the server re-checks every call.
+          final isSp = widget.role == UserRole.servicePartner;
+          final isCustomer = widget.role == UserRole.customer;
+          final isPartner = widget.role == UserRole.partnerOwner ||
+              widget.role == UserRole.partnerAdmin;
+          // Work can only start once the service date arrives (server
+          // enforces this in Asia/Kolkata; this is the local-day hint).
+          final serviceDay =
+              DateTime.tryParse('${b['service_date'] ?? ''}');
+          final now = DateTime.now();
+          final startEarly = serviceDay != null &&
+              DateTime(serviceDay.year, serviceDay.month, serviceDay.day)
+                  .isAfter(DateTime(now.year, now.month, now.day));
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
             children: [
@@ -565,40 +583,51 @@ class _BookingDetailState extends State<_BookingDetail> {
                       'OTP hint',
                       '${b['start_work_otp_hint'] ?? '—'}',
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Start-work OTP',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: AppInputField(
-                            testId: 'sp_start_otp',
-                            controller: _otp,
-                            placeholder: '6-digit code',
-                            keyboardType: TextInputType.number,
-                            maxLength: 6,
-                          ),
+                    if (isSp) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'Start-work OTP',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      if (startEarly) ...[
+                        AppAlert(
+                          title:
+                              'Work can start on ${b['service_date']}',
                         ),
-                        const SizedBox(width: 10),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: AppButton(
-                            text: 'Start work',
-                            testId: 'sp_start_work',
-                            variant: AppButtonVariant.secondary,
-                            expands: false,
-                            onPressed: () => _act(
-                              '/v1/bookings/${widget.id}/start',
-                              {'code': _otp.text},
+                        const SizedBox(height: 8),
+                      ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: AppInputField(
+                              testId: 'sp_start_otp',
+                              controller: _otp,
+                              placeholder: '6-digit code',
+                              keyboardType: TextInputType.number,
+                              maxLength: 6,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 10),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: AppButton(
+                              text: 'Start work',
+                              testId: 'sp_start_work',
+                              variant: AppButtonVariant.secondary,
+                              expands: false,
+                              onPressed: startEarly
+                                  ? null
+                                  : () => _act(
+                                        '/v1/bookings/${widget.id}/start',
+                                        {'code': _otp.text},
+                                      ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if (_msg != null) ...[
                       const SizedBox(height: 12),
                       AppAlert(
@@ -607,34 +636,38 @@ class _BookingDetailState extends State<_BookingDetail> {
                         success: _msg == 'ok',
                       ),
                     ],
-                    const SizedBox(height: 18),
-                    Text(
-                      'Offer actions',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        AppButton(
-                          text: 'Accept',
-                          testId: 'sp_offer_accept',
-                          expands: false,
-                          leading: const Icon(Icons.check_rounded, size: 16),
-                          onPressed: () =>
-                              _act('/v1/bookings/${widget.id}/accept'),
-                        ),
-                        AppButton(
-                          text: 'Decline',
-                          testId: 'sp_offer_decline',
-                          variant: AppButtonVariant.outline,
-                          expands: false,
-                          onPressed: () =>
-                              _act('/v1/bookings/${widget.id}/decline'),
-                        ),
-                        AppButton(
-                          text: 'Complete',
+                    if (isSp || isPartner) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        'Offer actions',
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (isSp)
+                            AppButton(
+                              text: 'Accept',
+                              testId: 'sp_offer_accept',
+                              expands: false,
+                              leading:
+                                  const Icon(Icons.check_rounded, size: 16),
+                              onPressed: () => _act(
+                                  '/v1/bookings/${widget.id}/accept'),
+                            ),
+                          if (isSp)
+                            AppButton(
+                              text: 'Decline',
+                              testId: 'sp_offer_decline',
+                              variant: AppButtonVariant.outline,
+                              expands: false,
+                              onPressed: () => _act(
+                                  '/v1/bookings/${widget.id}/decline'),
+                            ),
+                          AppButton(
+                            text: 'Complete',
                           testId: 'sp_complete',
                           variant: AppButtonVariant.secondary,
                           expands: false,
@@ -647,8 +680,9 @@ class _BookingDetailState extends State<_BookingDetail> {
                             {'payment_mode': 'cash'},
                           ),
                         ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                     if (forceAssignReady(b, DateTime.now())) ...[
                       const SizedBox(height: 18),
                       _ForceAssignCard(
@@ -657,32 +691,36 @@ class _BookingDetailState extends State<_BookingDetail> {
                         onAssigned: () => setState(() => _reload += 1),
                       ),
                     ],
-                    const SizedBox(height: 14),
-                    const Divider(height: 1),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        AppButton(
-                          text: 'Drop job',
-                          testId: 'sp_drop',
-                          variant: AppButtonVariant.ghost,
-                          expands: false,
-                          onPressed: () =>
-                              _act('/v1/bookings/${widget.id}/drop'),
-                        ),
-                        AppButton(
-                          text: 'Cancel booking',
-                          testId: 'customer_booking_cancel',
-                          variant: AppButtonVariant.destructive,
-                          expands: false,
-                          size: AppButtonSize.sm,
-                          onPressed: () =>
-                              _act('/v1/bookings/${widget.id}/cancel'),
-                        ),
-                      ],
-                    ),
+                    if (isSp || isPartner || isCustomer) ...[
+                      const SizedBox(height: 14),
+                      const Divider(height: 1),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (isSp || isPartner)
+                            AppButton(
+                              text: 'Drop job',
+                              testId: 'sp_drop',
+                              variant: AppButtonVariant.ghost,
+                              expands: false,
+                              onPressed: () => _act(
+                                  '/v1/bookings/${widget.id}/drop'),
+                            ),
+                          if (isCustomer)
+                            AppButton(
+                              text: 'Cancel booking',
+                              testId: 'customer_booking_cancel',
+                              variant: AppButtonVariant.destructive,
+                              expands: false,
+                              size: AppButtonSize.sm,
+                              onPressed: () => _act(
+                                  '/v1/bookings/${widget.id}/cancel'),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -983,8 +1021,12 @@ class _OffersPage extends StatelessWidget {
                   onOpen: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          _BookingDetail(api: api, id: o['id'] as String),
+                      builder: (_) => _BookingDetail(
+                        api: api,
+                        id: o['id'] as String,
+                        // Inbox is a service-partner-only tab.
+                        role: UserRole.servicePartner,
+                      ),
                     ),
                   ),
                 ),

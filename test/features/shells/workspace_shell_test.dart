@@ -20,16 +20,26 @@ ApiClient _stub(Map<String, Object> gets, FakeHttp fake) {
 Widget _shell(ApiClient api, SessionUser user, {VoidCallback? onLogout}) =>
     shellHarness(WorkspaceShell(api: api, user: user, onLogout: onLogout));
 
+String _dayIso(int offsetDays) {
+  final day = DateTime.now().add(Duration(days: offsetDays));
+  final mm = day.month.toString().padLeft(2, '0');
+  final dd = day.day.toString().padLeft(2, '0');
+  return '${day.year}-$mm-$dd';
+}
+
+String _todayIso() => _dayIso(0);
+
 Map<String, dynamic> _detail({
   String status = 'open',
   String? tech,
   bool ready = false,
+  String serviceDate = '2026-10-22',
 }) => {
   'id': 'b1',
   'status': status,
   'category_name': 'AC Repair',
   'category_slug': 'ac-repair',
-  'service_date': '2026-10-22',
+  'service_date': serviceDate,
   'slot': 'morning',
   'pincode': '682001',
   'quoted_amount': 500,
@@ -374,10 +384,52 @@ void main() {
       expect(find.text('Progress'), findsOneWidget);
     }
 
-    // Any offer action reloads the detail page.
+    Future<void> openSpDetail(WidgetTester tester, FakeHttp fake) async {
+      await tester.pumpWidget(
+        _shell(testApi(fake), testUser(UserRole.servicePartner)),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Open offer'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open offer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Progress'), findsOneWidget);
+    }
+
+    void spDetailRoutes(FakeHttp fake, Map<String, dynamic> body) {
+      fake.routes['/v1/offers'] = (_) => FakeHttp.json([
+        {
+          'id': 'b1',
+          'category_name': 'AC Repair',
+          'pincode': '682001',
+          'service_date': body['service_date'],
+          'slot': 'morning',
+          'status': 'open',
+        },
+      ]);
+      fake.routes['/v1/bookings/b1'] = (_) => FakeHttp.json(body);
+      fake.routes['/v1/categories'] = (_) => FakeHttp.json([]);
+    }
+
+    Future<void> openPartnerDetail(
+      WidgetTester tester,
+      FakeHttp fake,
+      UserRole role,
+    ) async {
+      await tester.pumpWidget(_shell(testApi(fake), testUser(role)));
+      await tester.pumpAndSettle();
+      await _tapTab(tester, 'Open');
+      await tester.ensureVisible(find.text('AC Repair'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('AC Repair'));
+      await tester.pumpAndSettle();
+      expect(find.text('Progress'), findsOneWidget);
+    }
+
+    // Any booking action reloads the detail page.
     Future<void> reloadDetail(
       WidgetTester tester, [
-      String key = 'sp_offer_decline',
+      String key = 'customer_booking_cancel',
     ]) async {
       await tester.ensureVisible(find.byKey(Key(key)));
       await tester.pumpAndSettle();
@@ -451,10 +503,13 @@ void main() {
       }
     });
 
-    testWidgets('offer actions post and reload', (tester) async {
+    testWidgets('sp offer actions post and reload', (tester) async {
       final fake = FakeHttp();
-      detailRoutes(fake, _detail(tech: 'Ravi'));
-      await openDetail(tester, fake);
+      spDetailRoutes(
+        fake,
+        _detail(tech: 'Ravi', serviceDate: _todayIso()),
+      );
+      await openSpDetail(tester, fake);
       int gets() => fake.requests.where((r) => r.method == 'GET').length;
 
       await tester.enterText(
@@ -477,7 +532,6 @@ void main() {
         'sp_offer_decline',
         'sp_complete',
         'sp_drop',
-        'customer_booking_cancel',
       ]) {
         await tester.ensureVisible(find.byKey(Key(key)));
         await tester.pumpAndSettle();
@@ -496,14 +550,88 @@ void main() {
       await tester.tap(find.byKey(const Key('sp_complete')));
       await tester.pumpAndSettle();
       expect(_posted(fake), {'payment_mode': 'cash'});
+      // No customer actions for the technician.
+      expect(find.byKey(const Key('customer_booking_cancel')), findsNothing);
+    });
+
+    testWidgets('customer sees cancel only', (tester) async {
+      final fake = FakeHttp();
+      detailRoutes(fake, _detail(tech: 'Ravi'));
+      await openDetail(tester, fake);
+      for (final key in [
+        'sp_start_otp',
+        'sp_start_work',
+        'sp_offer_accept',
+        'sp_offer_decline',
+        'sp_complete',
+        'sp_drop',
+      ]) {
+        expect(find.byKey(Key(key)), findsNothing, reason: key);
+      }
+      expect(find.text('Offer actions'), findsNothing);
+      await tester.ensureVisible(
+        find.byKey(const Key('customer_booking_cancel')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('customer_booking_cancel')));
+      await tester.pumpAndSettle();
+      expect(_lastWrite(fake).url.path, '/v1/bookings/b1/cancel');
+      expect(
+        fake.requests.lastWhere((r) => r.method == 'GET').url.query,
+        contains('r='),
+      );
+    });
+
+    testWidgets('partner sees complete and drop only', (tester) async {
+      for (final role in [UserRole.partnerOwner, UserRole.partnerAdmin]) {
+        final fake = FakeHttp();
+        detailRoutes(fake, _detail(tech: 'Ravi'));
+        await tester.pumpWidget(Container());
+        await tester.pumpAndSettle();
+        await openPartnerDetail(tester, fake, role);
+        for (final key in [
+          'sp_start_otp',
+          'sp_start_work',
+          'sp_offer_accept',
+          'sp_offer_decline',
+          'customer_booking_cancel',
+        ]) {
+          expect(find.byKey(Key(key)), findsNothing, reason: '$role $key');
+        }
+        expect(find.byKey(const Key('sp_complete')), findsOneWidget);
+        expect(find.byKey(const Key('sp_drop')), findsOneWidget);
+      }
+    });
+
+    testWidgets('start work disabled before the service date', (tester) async {
+      final fake = FakeHttp();
+      final future = _dayIso(3);
+      spDetailRoutes(fake, _detail(tech: 'Ravi', serviceDate: future));
+      await openSpDetail(tester, fake);
+      expect(
+        find.text('Work can start on $future'),
+        findsOneWidget,
+      );
+      int writes() => fake.requests
+          .where((r) => r.method == 'POST' || r.method == 'PUT')
+          .length;
+      final before = writes();
+      await tester.ensureVisible(find.byKey(const Key('sp_start_work')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('sp_start_work')));
+      await tester.pumpAndSettle();
+      expect(writes(), before);
     });
 
     testWidgets('action failure shows the error', (tester) async {
       final fake = FakeHttp();
-      detailRoutes(fake, _detail());
+      spDetailRoutes(
+        fake,
+        _detail(tech: 'Ravi', serviceDate: _todayIso()),
+      );
       fake.routes['/v1/bookings/b1/accept'] =
           (_) => FakeHttp.json({'detail': 'too late'}, 409);
-      await openDetail(tester, fake);
+      await openSpDetail(tester, fake);
       await tester.ensureVisible(find.byKey(const Key('sp_offer_accept')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('sp_offer_accept')));
@@ -563,11 +691,9 @@ void main() {
     // Reloading the detail also refetches the assignable list, since
     // the card builds its future inline.
     Future<void> refetchAssignable(WidgetTester tester) async {
-      await tester.ensureVisible(
-        find.byKey(const Key('sp_offer_decline')),
-      );
+      await tester.ensureVisible(find.byKey(const Key('sp_drop')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('sp_offer_decline')));
+      await tester.tap(find.byKey(const Key('sp_drop')));
       await tester.pumpAndSettle();
     }
 
