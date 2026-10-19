@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fixvia/app.dart';
 import 'package:fixvia/features/auth/auth_screen.dart';
+import 'package:fixvia/features/landing/landing_page.dart';
 import 'package:fixvia/features/shells/workspace_shell.dart';
 
 import 'helpers/test_helpers.dart';
@@ -33,13 +34,14 @@ Future<void> _login(WidgetTester tester) async {
 
 void main() {
   group('FixviaApp auth gate', () {
-    testWidgets('logged out shows the auth screen', (tester) async {
+    testWidgets('logged out shows the landing page', (tester) async {
       desktopSize(tester);
       await tester.pumpWidget(
         FixviaApp(authApi: FakeAuthApi(), api: testApi(FakeHttp())),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(AuthScreen), findsOneWidget);
+      expect(find.byType(LandingPage), findsOneWidget);
+      expect(find.byType(AuthScreen), findsNothing);
       expect(find.byType(WorkspaceShell), findsNothing);
     });
 
@@ -48,17 +50,22 @@ void main() {
       final api = testApi(FakeHttp());
       await tester.pumpWidget(FixviaApp(authApi: FakeAuthApi(), api: api));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('landing_login')));
+      await tester.pumpAndSettle();
       await _login(tester);
       expect(find.byType(WorkspaceShell), findsOneWidget);
       expect(find.byType(AuthScreen), findsNothing);
+      expect(find.byType(LandingPage), findsNothing);
       expect(api.token, 'tok-9000000001');
     });
 
-    testWidgets('logout returns to auth and clears the token',
+    testWidgets('logout returns to landing and clears the token',
         (tester) async {
       desktopSize(tester);
       final api = testApi(FakeHttp());
       await tester.pumpWidget(FixviaApp(authApi: FakeAuthApi(), api: api));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('landing_login')));
       await tester.pumpAndSettle();
       await _login(tester);
       expect(api.token, isNotNull);
@@ -66,7 +73,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('shell_logout')));
       await tester.pumpAndSettle();
-      expect(find.byType(AuthScreen), findsOneWidget);
+      expect(find.byType(LandingPage), findsOneWidget);
       expect(api.token, isNull);
     });
 
@@ -82,10 +89,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        Localizations.localeOf(tester.element(find.byType(AuthScreen))),
+        Localizations.localeOf(tester.element(find.byType(LandingPage))),
         const Locale('ml'),
       );
-      expect(find.byType(AuthScreen), findsOneWidget);
+      expect(find.byType(LandingPage), findsOneWidget);
     });
   });
 }

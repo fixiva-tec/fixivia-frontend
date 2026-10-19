@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:fixvia/core/theme/components/components.dart';
 import 'package:fixvia/features/customer/booking_flow.dart';
+import 'package:fixvia/features/customer/guest_draft.dart';
 
 import '../../helpers/test_helpers.dart';
 
@@ -56,13 +57,19 @@ Future<void> pumpFlow(
   FakeHttp fake, {
   String? initialCategoryId,
   bool dark = false,
+  String? token = 'tok-test',
+  Future<void> Function(GuestDraft draft)? onGuestConfirm,
 }) async {
   // Desktop height: the loading skeleton and tall steps need more
   // than the 600px default viewport.
   desktopSize(tester);
   await tester.pumpWidget(
     materialHarness(
-      BookingFlow(api: testApi(fake), initialCategoryId: initialCategoryId),
+      BookingFlow(
+        api: testApi(fake, token: token),
+        initialCategoryId: initialCategoryId,
+        onGuestConfirm: onGuestConfirm,
+      ),
       dark: dark,
     ),
   );
@@ -91,7 +98,7 @@ void main() {
         '/v1/addresses': (_) => FakeHttp.json([]),
       });
       await tester.pumpWidget(
-        materialHarness(BookingFlow(api: testApi(fake))),
+        materialHarness(BookingFlow(api: testApi(fake, token: 'tok-test'))),
       );
       await tester.pump();
       expect(find.byType(LoadingSkeleton), findsOneWidget);
@@ -107,7 +114,7 @@ void main() {
     testWidgets('unmount mid-load is a safe no-op', (tester) async {
       desktopSize(tester);
       await tester.pumpWidget(
-        materialHarness(BookingFlow(api: testApi(flowHttp()))),
+        materialHarness(BookingFlow(api: testApi(flowHttp(), token: 'tok-test'))),
       );
       await tester.pumpWidget(materialHarness(const SizedBox()));
       await tester.pumpAndSettle();
@@ -120,7 +127,7 @@ void main() {
         '/v1/addresses': (_) => FakeHttp.json([]),
       });
       await tester.pumpWidget(
-        materialHarness(BookingFlow(api: testApi(fake))),
+        materialHarness(BookingFlow(api: testApi(fake, token: 'tok-test'))),
       );
       await tester.pumpAndSettle();
       expect(find.text('boom'), findsOneWidget);
@@ -143,7 +150,7 @@ void main() {
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
         await tester.pumpWidget(
-          materialHarness(BookingFlow(api: testApi(flowHttp()))),
+          materialHarness(BookingFlow(api: testApi(flowHttp(), token: 'tok-test'))),
         );
         await tester.pumpAndSettle();
         final grid = tester.widget<GridView>(find.byType(GridView));
@@ -392,7 +399,7 @@ void main() {
               onPressed: () async {
                 popped = await Navigator.of(context).push(
                   MaterialPageRoute<bool>(
-                    builder: (_) => BookingFlow(api: testApi(fake)),
+                    builder: (_) => BookingFlow(api: testApi(fake, token: 'tok-test')),
                   ),
                 );
               },
@@ -498,6 +505,200 @@ void main() {
       );
       expect(find.text('Status'), findsOneWidget);
       expect(find.text('Open'), findsOneWidget);
+    });
+  });
+
+  group('BookingFlow guest mode', () {
+    Future<void> toSchedule(
+      WidgetTester tester,
+      FakeHttp fake, {
+      Future<void> Function(GuestDraft draft)? onGuestConfirm,
+    }) async {
+      await pumpFlow(tester, fake, token: null, onGuestConfirm: onGuestConfirm);
+      await tester.tap(
+        find.byKey(const Key('customer_booking_category_ac-repair')),
+      );
+      await tester.pumpAndSettle();
+      await next(tester);
+      await tester.tap(
+        find.byKey(const Key('customer_booking_problem_p1')),
+      );
+      await tester.pumpAndSettle();
+      await next(tester);
+      await next(tester);
+    }
+
+    Future<void> fillGuestAddress(WidgetTester tester) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('customer_booking_guest_line')),
+          matching: find.byType(TextField),
+        ),
+        '12 Palm St',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('customer_booking_guest_pin')),
+          matching: find.byType(TextField),
+        ),
+        '682001',
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('skips saved addresses and shows the form', (tester) async {
+      final fake = flowHttp();
+      await pumpFlow(tester, fake, token: null, onGuestConfirm: (_) async {});
+      expect(
+        fake.requests.any(
+          (r) => r.method == 'GET' && r.url.path == '/v1/addresses',
+        ),
+        isFalse,
+      );
+      await tester.tap(
+        find.byKey(const Key('customer_booking_category_ac-repair')),
+      );
+      await tester.pumpAndSettle();
+      await next(tester);
+      await tester.tap(
+        find.byKey(const Key('customer_booking_problem_p1')),
+      );
+      await tester.pumpAndSettle();
+      await next(tester);
+      await next(tester);
+      expect(find.text('Login to confirm'), findsOneWidget);
+      expect(
+        find.byKey(const Key('customer_booking_guest_line')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('customer_booking_guest_pin')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('customer_booking_address')), findsNothing);
+    });
+
+    testWidgets('review shows the typed address', (tester) async {
+      final fake = flowHttp();
+      await toSchedule(tester, fake, onGuestConfirm: (_) async {});
+      await fillGuestAddress(tester);
+      await back(tester);
+      expect(find.text('12 Palm St 682001'), findsOneWidget);
+    });
+
+    testWidgets('confirm hands the draft to the gate', (tester) async {
+      GuestDraft? draft;
+      final fake = flowHttp();
+      await toSchedule(
+        tester,
+        fake,
+        onGuestConfirm: (d) async => draft = d,
+      );
+      await fillGuestAddress(tester);
+      await tester.tap(find.byKey(const Key('customer_booking_next')));
+      await tester.pumpAndSettle();
+      expect(draft, isNotNull);
+      expect(draft!.categoryId, 'c-ac');
+      expect(draft!.issueIds, equals(['p1']));
+      expect(draft!.slot, 'morning');
+      expect(
+        draft!.serviceDate,
+        matches(RegExp(r'^\d{4}-\d{2}-\d{2}$')),
+      );
+      expect(draft!.addressLine, '12 Palm St');
+      expect(draft!.pincode, '682001');
+      expect(
+        fake.requests.any(
+          (r) => r.method == 'POST' && r.url.path == '/v1/bookings',
+        ),
+        isFalse,
+      );
+    });
+
+    testWidgets('bad pincode blocks the gate', (tester) async {
+      var gated = false;
+      final fake = flowHttp();
+      await toSchedule(
+        tester,
+        fake,
+        onGuestConfirm: (_) async => gated = true,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('customer_booking_guest_pin')),
+          matching: find.byType(TextField),
+        ),
+        '682',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('customer_booking_next')));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter an address and 6-digit pincode'), findsOneWidget);
+      expect(gated, isFalse);
+    });
+
+    testWidgets('missing gate asks for login', (tester) async {
+      final fake = flowHttp();
+      await toSchedule(tester, fake);
+      await fillGuestAddress(tester);
+      await tester.tap(find.byKey(const Key('customer_booking_next')));
+      await tester.pumpAndSettle();
+      expect(find.text('Login required'), findsOneWidget);
+    });
+
+    testWidgets('gate failure shows the error and stays', (tester) async {
+      final fake = flowHttp();
+      await toSchedule(
+        tester,
+        fake,
+        onGuestConfirm: (_) async => throw Exception('area not served'),
+      );
+      await fillGuestAddress(tester);
+      await tester.tap(find.byKey(const Key('customer_booking_next')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('area not served'), findsOneWidget);
+      expect(find.text('Step 4 of 4 · Pick a visit slot'), findsOneWidget);
+    });
+  });
+
+  group('submitGuestDraft', () {
+    test('creates the address then posts the booking', () async {
+      final posts = <String>[];
+      final bodies = <Map<String, dynamic>>[];
+      final fake = FakeHttp({
+        '/v1/addresses': (req) {
+          posts.add('addresses');
+          bodies.add(
+            jsonDecode((req as http.Request).body) as Map<String, dynamic>,
+          );
+          return FakeHttp.json({'id': 'a9'});
+        },
+        '/v1/bookings': (req) {
+          posts.add('bookings');
+          bodies.add(
+            jsonDecode((req as http.Request).body) as Map<String, dynamic>,
+          );
+          return FakeHttp.json({'id': 'b9', 'status': 'open'});
+        },
+      });
+      final out = await submitGuestDraft(
+        testApi(fake, token: 'tok-new'),
+        const GuestDraft(
+          categoryId: 'c-ac',
+          issueIds: ['p1'],
+          serviceDate: '2026-10-22',
+          slot: 'evening',
+          addressLine: '12 Palm St',
+          pincode: '682001',
+        ),
+      );
+      expect(posts, equals(['addresses', 'bookings']));
+      expect(bodies[0]['line1'], '12 Palm St');
+      expect(bodies[0]['pincode'], '682001');
+      expect(bodies[1]['address_id'], 'a9');
+      expect(bodies[1]['category_id'], 'c-ac');
+      expect(bodies[1]['slot'], 'evening');
+      expect(out['id'], 'b9');
     });
   });
 }

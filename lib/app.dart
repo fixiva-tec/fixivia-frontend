@@ -6,7 +6,7 @@ import 'api/client.dart';
 import 'core/session.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_api.dart';
-import 'features/auth/auth_screen.dart';
+import 'features/landing/landing_page.dart';
 import 'features/shells/role_shells.dart';
 import 'l10n/app_localizations.dart';
 
@@ -54,8 +54,9 @@ class _FixviaAppState extends State<FixviaApp> {
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => ShadAppBuilder(child: child!),
           home: _user == null
-              ? AuthScreen(
-                  api: widget.authApi,
+              ? LandingPage(
+                  api: widget.api,
+                  authApi: widget.authApi,
                   onAuthenticated: (result) {
                     widget.api.token = result.token;
                     setState(() => _user = result.user);

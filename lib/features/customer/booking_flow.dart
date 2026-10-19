@@ -5,14 +5,25 @@ import '../../core/booking_rules.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/components/components.dart';
 import '../../l10n/app_localizations.dart';
+import 'guest_draft.dart';
 
 class BookingFlow extends StatefulWidget {
-  const BookingFlow({required this.api, this.initialCategoryId, super.key});
+  const BookingFlow({
+    required this.api,
+    this.initialCategoryId,
+    this.onGuestConfirm,
+    super.key,
+  });
 
   final ApiClient api;
 
   /// Preselects a category (used when jumping in from the home grid).
   final String? initialCategoryId;
+
+  /// Called with the draft when a guest (no token) confirms. The caller
+  /// routes through login and submits via [submitGuestDraft]. Required
+  /// for guests; unused once logged in.
+  final Future<void> Function(GuestDraft draft)? onGuestConfirm;
 
   @override
   State<BookingFlow> createState() => _BookingFlowState();
@@ -25,10 +36,16 @@ class _BookingFlowState extends State<BookingFlow> {
   final _problems = <String>{};
   List<dynamic> _addresses = [];
   String? _addressId;
+  final _guestLine = TextEditingController();
+  final _guestPin = TextEditingController();
   DateTime _date = earliestServiceDate(DateTime.now());
   var _slot = 'morning';
   String? _error;
   var _loaded = false;
+
+  /// Guests have no token: same steps, but the address is typed in the
+  /// flow and the draft submits after the login gate.
+  bool get _guest => widget.api.token == null;
 
   List<dynamic> get _featuredCats =>
       _cats.where((c) => c['featured_rank'] != null).toList();
@@ -49,10 +66,20 @@ class _BookingFlowState extends State<BookingFlow> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _guestLine.dispose();
+    _guestPin.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
     try {
       final cats = await widget.api.get('/v1/categories') as List<dynamic>;
-      final addrs = await widget.api.get('/v1/addresses') as List<dynamic>;
+      // Saved addresses need an account; guests type theirs in step 4.
+      final addrs = _guest
+          ? <dynamic>[]
+          : await widget.api.get('/v1/addresses') as List<dynamic>;
       if (!mounted) return;
       setState(() {
         _cats = cats;
@@ -89,7 +116,9 @@ class _BookingFlowState extends State<BookingFlow> {
           if (_step > 0) const SizedBox(width: 10),
           Expanded(
             child: AppButton(
-              text: _step == 3 ? 'Confirm booking' : 'Next',
+              text: _step == 3
+                  ? (_guest ? 'Login to confirm' : 'Confirm booking')
+                  : 'Next',
               testId: 'customer_booking_next',
               showArrow: _step < 3,
               size: AppButtonSize.lg,
@@ -425,6 +454,10 @@ class _BookingFlowState extends State<BookingFlow> {
         return '${a['label'] ?? ''} ${a['pincode'] ?? ''}'.trim();
       }
     }
+    if (_guest) {
+      final typed = '${_guestLine.text.trim()} ${_guestPin.text.trim()}'.trim();
+      if (typed.isNotEmpty) return typed;
+    }
     return '—';
   }
 
@@ -438,6 +471,24 @@ class _BookingFlowState extends State<BookingFlow> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
+          if (_guest) ...[
+            AppInputField(
+              testId: 'customer_booking_guest_line',
+              controller: _guestLine,
+              placeholder: 'Street address',
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 10),
+            AppInputField(
+              testId: 'customer_booking_guest_pin',
+              controller: _guestPin,
+              placeholder: 'Pincode',
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 18),
+          ],
           if (_addresses.isNotEmpty)
             AppSelect<String>(
               testId: 'customer_booking_address',
@@ -538,6 +589,34 @@ class _BookingFlowState extends State<BookingFlow> {
     }
     if (_step < 3) {
       setState(() => _step += 1);
+      return;
+    }
+    if (_guest) {
+      final gate = widget.onGuestConfirm;
+      if (gate == null) {
+        setState(() => _error = 'Login required');
+        return;
+      }
+      final line = _guestLine.text.trim();
+      final pin = _guestPin.text.trim();
+      if (line.isEmpty || pin.length != 6 || int.tryParse(pin) == null) {
+        setState(() => _error = 'Enter an address and 6-digit pincode');
+        return;
+      }
+      try {
+        await gate(
+          GuestDraft(
+            categoryId: _categoryId!,
+            issueIds: _problems.toList(),
+            serviceDate: _date.toIso8601String().split('T').first,
+            slot: _slot,
+            addressLine: line,
+            pincode: pin,
+          ),
+        );
+      } catch (e) {
+        if (mounted) setState(() => _error = e.toString());
+      }
       return;
     }
     try {
