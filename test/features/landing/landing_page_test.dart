@@ -12,9 +12,9 @@ import '../../helpers/test_helpers.dart';
 
 List<Map<String, dynamic>> landingCats() => [
   {
-    'id': 'c-ac',
-    'name_en': 'AC Repair',
-    'slug': 'ac-repair',
+    'id': 'c-wp',
+    'name_en': 'Water purifier repair',
+    'slug': 'water-purifier-repair',
     'featured_rank': 1,
     'problems': [
       {'id': 'p1', 'text_en': 'Not cooling', 'featured_rank': 1},
@@ -90,7 +90,7 @@ Future<void> walkGuestFlow(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('landing_book')));
   await tester.pumpAndSettle();
   await tester.tap(
-    find.byKey(const Key('customer_booking_category_ac-repair')),
+    find.byKey(const Key('customer_booking_category_water-purifier-repair')),
   );
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('customer_booking_next')));
@@ -124,7 +124,7 @@ void main() {
       await pumpLanding(tester, landingHttp());
       expect(find.byKey(const Key('landing_login')), findsOneWidget);
       expect(find.text('Home services at your doorstep'), findsOneWidget);
-      expect(find.text('AC Repair'), findsOneWidget);
+      expect(find.text('Water purifier repair'), findsOneWidget);
       expect(find.text('Plumbing'), findsOneWidget);
       expect(find.text('Not cooling'), findsOneWidget);
       expect(find.text('682001'), findsWidgets);
@@ -211,9 +211,11 @@ void main() {
 
     testWidgets('service row opens the flow preselected', (tester) async {
       await pumpLanding(tester, landingHttp());
-      await tester.ensureVisible(find.text('Plumbing'));
+      await tester.ensureVisible(find.text('Water purifier repair'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('landing_service_plumbing')));
+      await tester.tap(
+        find.byKey(const Key('landing_service_water-purifier-repair')),
+      );
       await tester.pumpAndSettle();
       expect(find.byType(BookingFlow), findsOneWidget);
       // Preselected: Next moves straight to problems.
@@ -254,6 +256,10 @@ void main() {
         isFalse,
       );
       await loginThroughUi(tester);
+      // Celebration dialog: dismiss before the flow pops home.
+      expect(find.text('Booking confirmed!'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('booking_confirmed_done')));
+      await tester.pumpAndSettle();
       // Submitted after login: address first, then the booking.
       http.Request lastWrite(String path) => fake.requests.lastWhere(
         (r) => r.method == 'POST' && r.url.path == path,
@@ -265,7 +271,7 @@ void main() {
       final bookBody =
           jsonDecode(lastWrite('/v1/bookings').body) as Map<String, dynamic>;
       expect(bookBody['address_id'], 'a9');
-      expect(bookBody['category_id'], 'c-ac');
+      expect(bookBody['category_id'], 'c-wp');
       expect(bookBody['issue_template_ids'], equals(['p1']));
       expect(bookBody['slot'], 'morning');
       expect(authed, isNotNull);
@@ -296,7 +302,7 @@ void main() {
       await tester.tap(find.byKey(const Key('landing_book')));
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('customer_booking_next')));

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:fixvia/api/client.dart';
 import 'package:fixvia/core/theme/app_theme.dart';
 import 'package:fixvia/core/theme/components/app_account_menu.dart';
@@ -13,8 +12,6 @@ import 'package:fixvia/features/auth/auth_api.dart';
 import 'package:fixvia/features/auth/auth_screen.dart';
 import 'package:fixvia/features/customer/booking_flow.dart';
 import 'package:fixvia/l10n/app_localizations.dart';
-import 'package:fixvia/shared/widgets/fx_choice_button.dart';
-import 'package:fixvia/shared/widgets/fx_secondary_button.dart';
 
 class _FakeAuthApi implements AuthApi {
   @override
@@ -41,31 +38,24 @@ class _FakeAuthApi implements AuthApi {
 }
 
 Widget _harness(Widget child) {
-  return ShadApp(
-    theme: appShadTheme(Brightness.light),
+  return MaterialApp(
+    theme: buildAppTheme(Brightness.light),
     home: Scaffold(body: child),
   );
 }
 
 Widget _authApp() {
-  return ShadApp.custom(
-    theme: appShadTheme(Brightness.light),
-    appBuilder: (context) {
-      return MaterialApp(
-        theme: Theme.of(context),
-        locale: const Locale('en'),
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalShadLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        builder: (context, child) => ShadAppBuilder(child: child!),
-        home: AuthScreen(api: _FakeAuthApi(), onAuthenticated: (_) {}),
-      );
-    },
+  return MaterialApp(
+    theme: buildAppTheme(Brightness.light),
+    locale: const Locale('en'),
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: AuthScreen(api: _FakeAuthApi(), onAuthenticated: (_) {}),
   );
 }
 
@@ -108,44 +98,6 @@ void main() {
     expect(find.byKey(const Key('customer_home_book')), findsOneWidget);
     await tester.tap(find.byKey(const Key('customer_home_book')));
     expect(tapped, isTrue);
-  });
-
-  testWidgets('choice button selected state', (tester) async {
-    await tester.pumpWidget(
-      _harness(
-        FxChoiceButton(
-          label: 'AC',
-          selected: true,
-          testId: 'customer_booking_category_ac',
-          onTap: () {},
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('customer_booking_category_ac')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('secondary button disabled does not fire', (tester) async {
-    var tapped = false;
-    await tester.pumpWidget(
-      _harness(
-        FxSecondaryButton(
-          label: 'Later',
-          testId: 'auth_login_later',
-          onPressed: null,
-          showArrow: false,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('auth_login_later')),
-      warnIfMissed: false,
-    );
-    expect(tapped, isFalse);
   });
 
   testWidgets('account menu logs out after tapping the name', (tester) async {
@@ -193,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('customer_booking_category_ac-service')),
+      find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       findsOneWidget,
     );
     expect(
@@ -207,7 +159,7 @@ void main() {
     expect(find.text('Pick a category'), findsOneWidget);
 
     await tester.tap(
-      find.byKey(const Key('customer_booking_category_ac-service')),
+      find.byKey(const Key('customer_booking_category_water-purifier-repair')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('customer_booking_next')));
@@ -229,8 +181,8 @@ class _FakeHttp extends http.BaseClient {
       '/v1/categories' => jsonEncode([
         {
           'id': 'cat-1',
-          'slug': 'ac-service',
-          'name_en': 'AC Service',
+          'slug': 'water-purifier-repair',
+          'name_en': 'Water purifier repair',
           'featured_rank': 1,
           'problems': [
             {

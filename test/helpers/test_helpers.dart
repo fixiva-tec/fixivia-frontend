@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:fixvia/api/client.dart';
 import 'package:fixvia/core/session.dart';
 import 'package:fixvia/core/theme/app_theme.dart';
@@ -101,21 +100,21 @@ class FakeHttp extends http.BaseClient {
 ApiClient testApi(FakeHttp fake, {String? token}) =>
     ApiClient(baseUrl: 'http://test', token: token, httpClient: fake);
 
-/// Minimal Shad shell for theme components (no localizations needed).
-Widget shadHarness(Widget child, {bool dark = false}) {
-  return ShadApp(
-    theme: appShadTheme(Brightness.light),
-    darkTheme: appShadTheme(Brightness.dark),
+/// Minimal Material shell for theme components (no localizations needed).
+Widget themeHarness(Widget child, {bool dark = false}) {
+  return MaterialApp(
+    theme: buildAppTheme(Brightness.light),
+    darkTheme: buildAppTheme(Brightness.dark),
     themeMode: dark ? ThemeMode.dark : ThemeMode.light,
     home: Scaffold(body: child),
   );
 }
 
-/// Shad shell with localizations, for shells/flows needing both.
+/// Material shell with localizations, for shells/flows needing both.
 Widget shellHarness(Widget child, {bool dark = false}) {
-  return ShadApp(
-    theme: appShadTheme(Brightness.light),
-    darkTheme: appShadTheme(Brightness.dark),
+  return MaterialApp(
+    theme: buildAppTheme(Brightness.light),
+    darkTheme: buildAppTheme(Brightness.dark),
     themeMode: dark ? ThemeMode.dark : ThemeMode.light,
     locale: const Locale('en'),
     localizationsDelegates: const [

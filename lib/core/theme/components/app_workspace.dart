@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import 'app_button.dart';
 import 'app_test_id.dart';
-import 'app_visual.dart';
 
 class AppNavDest {
   const AppNavDest({required this.label, required this.icon, this.testId});
@@ -13,7 +12,7 @@ class AppNavDest {
   final String? testId;
 }
 
-/// Logged-in chrome: charcoal sidebar on desktop, floating bottom bar on
+/// Logged-in chrome: navy icon rail on desktop, floating bottom bar on
 /// compact, white header with the account menu.
 class AppWorkspaceFrame extends StatelessWidget {
   const AppWorkspaceFrame({
@@ -23,7 +22,8 @@ class AppWorkspaceFrame extends StatelessWidget {
     required this.body,
     required this.account,
     required this.brand,
-    this.darkBrand,
+    this.mark,
+    this.railAccount,
     this.roleLabel,
     super.key,
   });
@@ -35,8 +35,11 @@ class AppWorkspaceFrame extends StatelessWidget {
   final Widget account;
   final Widget brand;
 
-  /// Brand mark for the dark sidebar. Defaults to [brand].
-  final Widget? darkBrand;
+  /// Icon mark topping the desktop rail. Defaults to [brand].
+  final Widget? mark;
+
+  /// Account control pinned to the rail bottom. Hidden when null.
+  final Widget? railAccount;
 
   /// Small badge shown next to the brand on compact (e.g. role name).
   final String? roleLabel;
@@ -64,12 +67,12 @@ class AppWorkspaceFrame extends StatelessWidget {
             )
           : Row(
               children: [
-                _SideNav(
+                _Rail(
                   destinations: destinations,
                   selectedIndex: selectedIndex,
                   onSelect: onSelect,
-                  brand: darkBrand ?? brand,
-                  account: account,
+                  mark: mark ?? brand,
+                  account: railAccount,
                 ),
                 Expanded(
                   child: body,
@@ -210,7 +213,7 @@ class _Header extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              gradient: AppColors.primaryGradient,
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(
                                 AppRadii.pill,
                               ),
@@ -245,112 +248,117 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SideNav extends StatelessWidget {
-  const _SideNav({
+/// Dark navy icon rail: brand mark on top, icon destinations with
+/// tooltips, account control pinned to the bottom.
+class _Rail extends StatelessWidget {
+  const _Rail({
     required this.destinations,
     required this.selectedIndex,
     required this.onSelect,
-    required this.brand,
-    required this.account,
+    required this.mark,
+    this.account,
   });
 
   final List<AppNavDest> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
-  final Widget brand;
-  final Widget account;
+  final Widget mark;
+  final Widget? account;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 264,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.charcoalDeep, AppColors.charcoalSoft],
-        ),
-      ),
+      width: 84,
+      color: AppColors.navy,
       child: SafeArea(
         right: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-              child: Align(alignment: Alignment.centerLeft, child: brand),
+            const SizedBox(height: 18),
+            Container(
+              width: 46,
+              height: 46,
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: mark,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   for (var i = 0; i < destinations.length; i++) ...[
-                    _NavTile(
+                    _RailButton(
                       dest: destinations[i],
                       selected: i == selectedIndex,
                       onTap: () => onSelect(i),
-                      expanded: true,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 10),
                   ],
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradientDiagonal,
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                ),
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: FxRings(opacity: 0.22),
-                    ),
-                    Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: AppColors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.bolt_rounded,
-                            color: AppColors.white,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            'Fixiva\nHome services',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w600,
-                              height: 1.35,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            if (account != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: account!,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-              child: account,
-            ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// One rail destination: filled blue circle when selected, translucent
+/// disc otherwise. Labels live in tooltips — the rail is icon-only.
+class _RailButton extends StatelessWidget {
+  const _RailButton({
+    required this.dest,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppNavDest dest;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = Tooltip(
+      message: dest.label,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.primary
+                  : AppColors.white.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+              boxShadow: selected ? AppShadows.glowSoft : const [],
+            ),
+            child: Icon(
+              dest.icon,
+              size: 22,
+              color: selected
+                  ? AppColors.white
+                  : AppColors.white.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (dest.testId == null) return button;
+    return AppTestId(testId: dest.testId!, child: button);
   }
 }
 
@@ -374,9 +382,10 @@ class _BottomNav extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.charcoal,
+            color: AppColors.surfaceOf(context),
             borderRadius: BorderRadius.circular(26),
-            boxShadow: AppShadows.lift,
+            border: Border.all(color: AppColors.lineOf(context)),
+            boxShadow: AppShadows.soft,
           ),
           child: Row(
             children: [
@@ -386,7 +395,6 @@ class _BottomNav extends StatelessWidget {
                     dest: destinations[i],
                     selected: i == selectedIndex,
                     onTap: () => onSelect(i),
-                    expanded: false,
                   ),
                 ),
             ],
@@ -397,76 +405,50 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
+/// Compact bottom-bar tile: icon over a small label.
 class _NavTile extends StatelessWidget {
   const _NavTile({
     required this.dest,
     required this.selected,
     required this.onTap,
-    required this.expanded,
   });
 
   final AppNavDest dest;
   final bool selected;
   final VoidCallback onTap;
-  final bool expanded;
 
   @override
   Widget build(BuildContext context) {
-    final fg = selected ? AppColors.white : const Color(0xFFB8B0A6);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = selected
+        ? AppColors.white
+        : (dark ? const Color(0xFFB8B0A6) : AppColors.muted);
     final tile = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        gradient: selected ? AppColors.primaryGradient : null,
-        borderRadius: BorderRadius.circular(expanded ? 12 : 18),
+        color: selected ? AppColors.primary : null,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: selected ? AppShadows.glowSoft : const [],
       ),
-      padding: EdgeInsets.symmetric(
-        horizontal: expanded ? 14 : 4,
-        vertical: expanded ? 12 : 8,
-      ),
-      child: expanded
-          ? Row(
-              children: [
-                Icon(dest.icon, size: 19, color: fg),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    dest.label,
-                    style: TextStyle(
-                      color: fg,
-                      fontWeight: selected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      fontSize: 14.5,
-                    ),
-                  ),
-                ),
-                if (selected)
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 15,
-                    color: AppColors.white,
-                  ),
-              ],
-            )
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(dest.icon, size: 20, color: fg),
-                const SizedBox(height: 3),
-                Text(
-                  dest.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 10,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ),
-                ),
-              ],
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(dest.icon, size: 20, color: fg),
+          const SizedBox(height: 3),
+          Text(
+            dest.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: fg,
+              fontSize: 10,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             ),
+          ),
+        ],
+      ),
     );
 
     final tappable = MouseRegion(

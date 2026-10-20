@@ -51,7 +51,7 @@ class AppSelect<T> extends StatelessWidget {
             menuMaxHeight: 320,
             icon: const Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: AppColors.brightOrange,
+              color: AppColors.primaryBright,
             ),
             dropdownColor: AppColors.surfaceOf(context),
             borderRadius: BorderRadius.circular(AppRadii.md),
@@ -85,7 +85,7 @@ class AppSelect<T> extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadii.md),
                 borderSide: const BorderSide(
-                  color: AppColors.brightOrange,
+                  color: AppColors.primaryBright,
                   width: 1.6,
                 ),
               ),

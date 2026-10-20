@@ -63,7 +63,7 @@ class BookingRowCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.deepOrange,
+                        color: AppColors.primary,
                       ),
                     ),
                     if (b['technician_name'] != null) ...[
@@ -87,7 +87,7 @@ class BookingRowCard extends StatelessWidget {
                       const Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 14,
-                        color: AppColors.brightOrange,
+                        color: AppColors.primaryBright,
                       ),
                   ],
                 ),
@@ -133,7 +133,7 @@ class _DateBadge extends StatelessWidget {
       width: 56,
       padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradientDiagonal,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(AppRadii.md),
       ),
       child: Column(
@@ -185,6 +185,15 @@ class _PartnersPageState extends State<PartnersPage> {
     });
   }
 
+  Future<void> _review(Map<String, dynamic> p, String status) async {
+    await widget.api.post('/v1/partners/${p['id']}/review', {
+      'status': status,
+      if (status == 'approved')
+        'pincodes': [if (p['office_pincode'] != null) p['office_pincode']],
+    });
+    _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return WorkspacePage(
@@ -196,89 +205,64 @@ class _PartnersPageState extends State<PartnersPage> {
         onRetry: _reload,
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No partners yet',
-                hint: 'Invited operation partners will appear here.',
-                icon: Icons.apartment_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final p in items) ...[
-                AppCard(
-                  leading: const FxServiceTile(
-                    icon: Icons.apartment_rounded,
-                  ),
-                  title: field(p, 'trade_name'),
-                  description: field(p, 'legal_name', field(p, 'org_type')),
-                  trailing: StatusBadge(field(p, 'status')),
-                  child: Column(
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Partner', flex: 2),
+              AppTableColumn('Office pin'),
+              AppTableColumn('Fee'),
+              AppTableColumn('Status'),
+              AppTableColumn('Manage', flex: 2),
+            ],
+            rows: [
+              for (final p in items)
+                [
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      InfoRow('Office pin', field(p, 'office_pincode')),
-                      InfoRow('Email', field(p, 'personal_email')),
-                      InfoRow('License fee', money(p['license_fee_amount'])),
-                      InfoRow(
-                        'Commission',
-                        '${field(p, 'commission_percent')}%',
+                      tcell(field(p, 'trade_name'), bold: true),
+                      tcell(
+                        field(p, 'legal_name', field(p, 'org_type')),
+                        size: 12,
+                        color: AppColors.subOf(context),
                       ),
-                      if (p['pincodes'] is List &&
-                          (p['pincodes'] as List).isNotEmpty)
-                        InfoRow('Pincodes', (p['pincodes'] as List).join(', ')),
-                      if (field(p, 'status') != 'approved') ...[
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            AppButton(
-                              text: 'Approve',
-                              testId: 'master_partner_approve_${p['id']}',
-                              size: AppButtonSize.sm,
-                              expands: false,
-                              leading: const Icon(
-                                Icons.check_rounded,
-                                size: 15,
-                              ),
-                              onPressed: () async {
-                                await widget.api.post(
-                                  '/v1/partners/${p['id']}/review',
-                                  {
-                                    'status': 'approved',
-                                    'pincodes': [
-                                      if (p['office_pincode'] != null)
-                                        p['office_pincode'],
-                                    ],
-                                  },
-                                );
-                                _reload();
-                              },
-                            ),
-                            AppButton(
-                              text: 'Reject',
-                              testId: 'master_partner_reject_${p['id']}',
-                              variant: AppButtonVariant.outline,
-                              size: AppButtonSize.sm,
-                              expands: false,
-                              onPressed: () async {
-                                await widget.api.post(
-                                  '/v1/partners/${p['id']}/review',
-                                  {'status': 'rejected'},
-                                );
-                                _reload();
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                  tcell(field(p, 'office_pincode')),
+                  tcell(money(p['license_fee_amount'])),
+                  StatusBadge(field(p, 'status')),
+                  if (field(p, 'status') != 'approved')
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        AppButton(
+                          text: 'Approve',
+                          testId: 'master_partner_approve_${p['id']}',
+                          size: AppButtonSize.sm,
+                          expands: false,
+                          leading: const Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                          ),
+                          onPressed: () => _review(p, 'approved'),
+                        ),
+                        AppButton(
+                          text: 'Reject',
+                          testId: 'master_partner_reject_${p['id']}',
+                          variant: AppButtonVariant.outline,
+                          size: AppButtonSize.sm,
+                          expands: false,
+                          onPressed: () => _review(p, 'rejected'),
+                        ),
+                      ],
+                    )
+                  else
+                    tcell('—', color: AppColors.subOf(context)),
+                ],
             ],
+            emptyTitle: 'No partners yet',
+            emptyIcon: Icons.apartment_outlined,
           );
         },
       ),
@@ -301,47 +285,51 @@ class CategoriesPage extends StatelessWidget {
         future: api.get('/v1/categories'),
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No categories yet',
-                icon: Icons.category_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final c in items) ...[
-                AppCard(
-                  leading: FxServiceTile(
-                    icon: categoryIcon(field(c, 'slug', '')),
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Service', flex: 2),
+              AppTableColumn('Visit'),
+              AppTableColumn('Problems'),
+              AppTableColumn('Status'),
+            ],
+            rows: [
+              for (final c in items)
+                [
+                  Row(
+                    children: [
+                      FxServiceImage(slug: field(c, 'slug', ''), size: 40),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            tcell(field(c, 'name_en'), bold: true),
+                            tcell(
+                              field(c, 'slug'),
+                              size: 12,
+                              color: AppColors.subOf(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  title: field(c, 'name_en'),
-                  description: field(c, 'name_ml', field(c, 'description_en')),
-                  trailing: c['featured_rank'] != null
+                  tcell('${field(c, 'estimated_minutes', '60')} min'),
+                  tcell(
+                    c['problems'] is List
+                        ? '${(c['problems'] as List).length} templates'
+                        : '—',
+                  ),
+                  c['featured_rank'] != null
                       ? StatusBadge('featured #${c['featured_rank']}')
                       : StatusBadge(
                           c['is_active'] == false ? 'inactive' : 'active',
                         ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      InfoRow('Slug', field(c, 'slug')),
-                      InfoRow(
-                        'Visit time',
-                        '${field(c, 'estimated_minutes', '60')} min',
-                      ),
-                      if (c['problems'] is List)
-                        InfoRow(
-                          'Problems',
-                          '${(c['problems'] as List).length} templates',
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                ],
             ],
+            emptyTitle: 'No categories yet',
+            emptyIcon: Icons.category_outlined,
           );
         },
       ),
@@ -368,6 +356,14 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     });
   }
 
+  Future<void> _review(Map<String, dynamic> r, String status) async {
+    await widget.api.post(
+      '/v1/partner-admin-requests/${r['id']}/review',
+      {'status': status},
+    );
+    _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return WorkspacePage(
@@ -379,71 +375,68 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
         onRetry: _reload,
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No partner-admin requests',
-                icon: Icons.person_add_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final r in items) ...[
-                AppCard(
-                  leading: FxAvatar(name: field(r, 'full_name', '?')),
-                  title: field(r, 'full_name'),
-                  description: field(r, 'email', field(r, 'mobile')),
-                  trailing: StatusBadge(field(r, 'status')),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Name', flex: 2),
+              AppTableColumn('Contact', flex: 2),
+              AppTableColumn('Status'),
+              AppTableColumn('Manage', flex: 2),
+            ],
+            rows: [
+              for (final r in items)
+                [
+                  Row(
                     children: [
-                      InfoRow('Mobile', field(r, 'mobile')),
-                      if (field(r, 'status') == 'submitted') ...[
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            AppButton(
-                              text: 'Approve',
-                              testId: 'master_admin_approve_${r['id']}',
-                              size: AppButtonSize.sm,
-                              expands: false,
-                              leading: const Icon(
-                                Icons.check_rounded,
-                                size: 15,
-                              ),
-                              onPressed: () async {
-                                await widget.api.post(
-                                  '/v1/partner-admin-requests/${r['id']}/review',
-                                  {'status': 'approved'},
-                                );
-                                _reload();
-                              },
-                            ),
-                            AppButton(
-                              text: 'Reject',
-                              testId: 'master_admin_reject_${r['id']}',
-                              variant: AppButtonVariant.outline,
-                              size: AppButtonSize.sm,
-                              expands: false,
-                              onPressed: () async {
-                                await widget.api.post(
-                                  '/v1/partner-admin-requests/${r['id']}/review',
-                                  {'status': 'rejected'},
-                                );
-                                _reload();
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
+                      FxAvatar(name: field(r, 'full_name', '?')),
+                      const SizedBox(width: 10),
+                      Expanded(child: tcell(field(r, 'full_name'), bold: true)),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      tcell(field(r, 'email', field(r, 'mobile'))),
+                      tcell(
+                        field(r, 'mobile'),
+                        size: 12,
+                        color: AppColors.subOf(context),
+                      ),
+                    ],
+                  ),
+                  StatusBadge(field(r, 'status')),
+                  if (field(r, 'status') == 'submitted')
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        AppButton(
+                          text: 'Approve',
+                          testId: 'master_admin_approve_${r['id']}',
+                          size: AppButtonSize.sm,
+                          expands: false,
+                          leading: const Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                          ),
+                          onPressed: () => _review(r, 'approved'),
+                        ),
+                        AppButton(
+                          text: 'Reject',
+                          testId: 'master_admin_reject_${r['id']}',
+                          variant: AppButtonVariant.outline,
+                          size: AppButtonSize.sm,
+                          expands: false,
+                          onPressed: () => _review(r, 'rejected'),
+                        ),
+                      ],
+                    )
+                  else
+                    tcell('—', color: AppColors.subOf(context)),
+                ],
             ],
+            emptyTitle: 'No partner-admin requests',
+            emptyIcon: Icons.person_add_outlined,
           );
         },
       ),
@@ -466,30 +459,26 @@ class InvoicesPage extends StatelessWidget {
         future: api.get('/v1/invoices'),
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No invoices yet',
-                icon: Icons.receipt_long_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final inv in items) ...[
-                AppCard(
-                  leading: const FxServiceTile(
-                    icon: Icons.receipt_long_rounded,
-                  ),
-                  title: money(inv['amount']),
-                  description:
-                      '${field(inv, 'period_start')} → ${field(inv, 'period_end')}',
-                  trailing: StatusBadge(field(inv, 'status')),
-                  child: InfoRow('Partner', field(inv, 'partner_id')),
-                ),
-                const SizedBox(height: 12),
-              ],
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Amount'),
+              AppTableColumn('Period', flex: 2),
+              AppTableColumn('Partner', flex: 2),
+              AppTableColumn('Status'),
             ],
+            rows: [
+              for (final inv in items)
+                [
+                  tmoney(money(inv['amount'])),
+                  tcell(
+                    '${field(inv, 'period_start')} → ${field(inv, 'period_end')}',
+                  ),
+                  tcell(field(inv, 'partner_id')),
+                  StatusBadge(field(inv, 'status')),
+                ],
+            ],
+            emptyTitle: 'No invoices yet',
+            emptyIcon: Icons.receipt_long_outlined,
           );
         },
       ),
@@ -525,8 +514,7 @@ class AnalyticsPage extends StatelessWidget {
                   final w = wide
                       ? (constraints.maxWidth - 24) / 4
                       : (constraints.maxWidth - 12) / 2;
-                  Widget cell(Widget c) =>
-                      SizedBox(width: w, child: c);
+                  Widget cell(Widget c) => SizedBox(width: w, child: c);
                   return Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -541,7 +529,7 @@ class AnalyticsPage extends StatelessWidget {
                         'Open',
                         field(a, 'still_open', '0'),
                         Icons.pending_actions_rounded,
-                        AppColors.deepOrange,
+                        AppColors.primary,
                       )),
                       cell(_metric(
                         'Accepted',
@@ -565,13 +553,13 @@ class AnalyticsPage extends StatelessWidget {
                         'Job GMV',
                         money(a['gmv_completed']),
                         Icons.currency_rupee_rounded,
-                        AppColors.ember,
+                        AppColors.primaryDeep,
                       )),
                       cell(_metric(
                         'Commission',
                         money(a['commission_completed']),
                         Icons.percent_rounded,
-                        AppColors.brightOrange,
+                        AppColors.primaryBright,
                       )),
                       cell(_metric(
                         'Median accept',
@@ -579,11 +567,24 @@ class AnalyticsPage extends StatelessWidget {
                             ? '—'
                             : '${a['median_accept_minutes']} min',
                         Icons.timer_outlined,
-                        AppColors.charcoal,
+                        AppColors.ink,
                       )),
                     ],
                   );
                 },
+              ),
+              const SizedBox(height: 16),
+              AppCard(
+                title: 'Booking funnel',
+                description: 'Created → accepted → completed.',
+                child: _TrendBars(
+                  values: [
+                    _intOf(a['created']),
+                    _intOf(a['accepted']),
+                    _intOf(a['completed']),
+                  ],
+                  labels: const ['Created', 'Accepted', 'Done'],
+                ),
               ),
               const SizedBox(height: 16),
               AppCard(
@@ -627,6 +628,81 @@ class AnalyticsPage extends StatelessWidget {
   }
 }
 
+int _intOf(dynamic value) => int.tryParse('$value') ?? 0;
+
+/// Compact bar trio painted from real aggregates (no chart package).
+class _TrendBars extends StatelessWidget {
+  const _TrendBars({required this.values, required this.labels});
+
+  final List<int> values;
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final max = values.fold<int>(1, (m, v) => v > m ? v : m);
+    const tints = [AppColors.info, AppColors.warning, AppColors.successDeep];
+    return SizedBox(
+      height: 148,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < values.length; i++)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${values[i]}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: FractionallySizedBox(
+                        heightFactor: values[i] <= 0
+                            ? 0.04
+                            : (values[i] / max).clamp(0.04, 1.0),
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                tints[i % tints.length],
+                                tints[i % tints.length].withValues(alpha: 0.55),
+                              ],
+                            ),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      labels[i],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.subOf(context),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PartnerBar extends StatelessWidget {
   const _PartnerBar({required this.partner});
 
@@ -663,9 +739,9 @@ class _PartnerBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: ratio,
             minHeight: 9,
-            backgroundColor: AppColors.peachSoft,
+            backgroundColor: AppColors.washSoft,
             valueColor: const AlwaysStoppedAnimation<Color>(
-              AppColors.deepOrange,
+              AppColors.primary,
             ),
           ),
         ),
@@ -699,27 +775,33 @@ class BookingsListPage extends StatelessWidget {
         future: api.get(path),
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No bookings yet',
-                icon: Icons.event_available_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final b in items) ...[
-                BookingRowCard(
-                  booking: b,
-                  testId: '${testId}_item_${b['id']}',
-                  onTap: b['id'] != null && onOpen != null
-                      ? () => onOpen!(b['id'] as String)
-                      : null,
-                ),
-                const SizedBox(height: 10),
-              ],
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Service', flex: 2),
+              AppTableColumn('Date'),
+              AppTableColumn('Slot'),
+              AppTableColumn('Amount'),
+              AppTableColumn('Status'),
             ],
+            rows: [
+              for (final b in items)
+                [
+                  tcell(field(b, 'category_name', 'Booking'), bold: true),
+                  tcell(field(b, 'service_date')),
+                  tcell(pretty(field(b, 'slot'))),
+                  tmoney(money(b['quoted_amount'])),
+                  StatusBadge(field(b, 'status')),
+                ],
+            ],
+            rowTestIds: [for (final b in items) '${testId}_item_${b['id']}'],
+            onRowTap: onOpen == null
+                ? null
+                : (i) {
+                    final id = items[i]['id'];
+                    if (id != null) onOpen!(id as String);
+                  },
+            emptyTitle: 'No bookings yet',
+            emptyIcon: Icons.event_available_outlined,
           );
         },
       ),
@@ -750,51 +832,41 @@ class PricingPage extends StatelessWidget {
             for (final c in asMapList(pair[1]))
               field(c, 'id'): c,
           };
-          if (prices.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No pricing rows yet',
-                icon: Icons.sell_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final p in prices) ...[
-                _PricingCard(price: p, category: cats[field(p, 'category_id')]),
-                const SizedBox(height: 12),
-              ],
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Service', flex: 2),
+              AppTableColumn('Visit charge'),
+              AppTableColumn('Status'),
             ],
+            rows: [
+              for (final p in prices)
+                [
+                  Builder(builder: (context) {
+                    final cat = cats[field(p, 'category_id')];
+                    final name = cat == null
+                        ? field(p, 'category_id')
+                        : field(cat, 'name_en');
+                    return Row(
+                      children: [
+                        FxServiceImage(
+                          slug: cat == null
+                              ? null
+                              : field(cat, 'slug', ''),
+                          size: 36,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: tcell(name, bold: true)),
+                      ],
+                    );
+                  }),
+                  tmoney(money(p['visit_charge'])),
+                  StatusBadge(p['enabled'] == false ? 'disabled' : 'enabled'),
+                ],
+            ],
+            emptyTitle: 'No pricing rows yet',
+            emptyIcon: Icons.sell_outlined,
           );
         },
-      ),
-    );
-  }
-}
-
-class _PricingCard extends StatelessWidget {
-  const _PricingCard({required this.price, this.category});
-
-  final Map<String, dynamic> price;
-  final Map<String, dynamic>? category;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = category == null
-        ? field(price, 'category_id')
-        : field(category!, 'name_en');
-    return AppCard(
-      leading: FxServiceTile(
-        icon: categoryIcon(category == null ? null : field(category!, 'slug')),
-      ),
-      title: name,
-      description: 'Per visit',
-      trailing: StatusBadge(price['enabled'] == false ? 'disabled' : 'enabled'),
-      child: Text(
-        money(price['visit_charge']),
-        style: Theme.of(
-          context,
-        ).textTheme.headlineSmall?.copyWith(color: AppColors.deepOrange),
       ),
     );
   }
@@ -836,7 +908,7 @@ class SchedulePage extends StatelessWidget {
                     const Icon(
                       Icons.calendar_month_rounded,
                       size: 17,
-                      color: AppColors.brightOrange,
+                      color: AppColors.primaryBright,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -850,16 +922,14 @@ class SchedulePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              _slot(
-                context,
+              _slotTable(
                 'Morning',
                 '09:00 – 13:00',
                 Icons.wb_sunny_rounded,
                 morning,
               ),
               const SizedBox(height: 12),
-              _slot(
-                context,
+              _slotTable(
                 'Evening',
                 '13:00 – 18:00',
                 Icons.nights_stay_rounded,
@@ -872,82 +942,34 @@ class SchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _slot(
-    BuildContext context,
+  Widget _slotTable(
     String label,
     String time,
     IconData icon,
     List<Map<String, dynamic>> jobs,
   ) {
     return AppCard(
-      leading: FxServiceTile(icon: icon),
-      title: label,
-      description: jobs.isEmpty ? 'No jobs · $time' : '${jobs.length} job(s) · $time',
-      child: jobs.isEmpty
-          ? const Text(
-              'Nothing scheduled — enjoy the breather.',
-              style: TextStyle(color: AppColors.muted, fontSize: 13.5),
-            )
-          : Column(
-              children: [
-                for (var i = 0; i < jobs.length; i++) ...[
-                  if (i > 0) const Divider(height: 18),
-                  _JobStop(index: i, job: jobs[i]),
-                ],
-              ],
-            ),
-    );
-  }
-}
-
-class _JobStop extends StatelessWidget {
-  const _JobStop({required this.index, required this.job});
-
-  final int index;
-  final Map<String, dynamic> job;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '${index + 1}',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                field(job, 'category_name', field(job, 'pincode')),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                field(job, 'pincode'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+      title: '$label · $time',
+      child: AppDataTable(
+        dense: true,
+        columns: const [
+          AppTableColumn('#', flex: 1),
+          AppTableColumn('Job', flex: 3),
+          AppTableColumn('Pincode', flex: 2),
+          AppTableColumn('Status', flex: 2),
+        ],
+        rows: [
+          for (var i = 0; i < jobs.length; i++)
+            [
+              tcell('${i + 1}', bold: true, color: AppColors.primary),
+              tcell(field(jobs[i], 'category_name', field(jobs[i], 'pincode'))),
+              tcell(field(jobs[i], 'pincode')),
+              StatusBadge(field(jobs[i], 'status')),
             ],
-          ),
-        ),
-        StatusBadge(field(job, 'status')),
-      ],
+        ],
+        emptyTitle: 'Nothing scheduled — enjoy the breather.',
+        emptyIcon: icon,
+      ),
     );
   }
 }
@@ -1002,7 +1024,7 @@ class EarningsPage extends StatelessWidget {
                       label: 'Jobs',
                       value: field(e, 'jobs', '0'),
                       icon: Icons.work_rounded,
-                      tint: AppColors.deepOrange,
+                      tint: AppColors.primary,
                     ),
                   ),
                 ],

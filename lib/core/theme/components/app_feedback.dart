@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import 'app_visual.dart';
 
-/// Friendly empty state: service tile + KoHo title + hint + optional action.
+/// Friendly empty state: service tile + Poppins title + hint + optional action.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     required this.title,
@@ -96,7 +96,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
                       decoration: BoxDecoration(
                         color: dark
                             ? AppColors.darkLine
-                            : AppColors.lightGray,
+                            : AppColors.canvas,
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
@@ -129,7 +129,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
       child: Container(
         height: 12,
         decoration: BoxDecoration(
-          color: dark ? AppColors.darkLine : AppColors.lightGray,
+          color: dark ? AppColors.darkLine : AppColors.canvas,
           borderRadius: BorderRadius.circular(6),
         ),
       ),
@@ -137,7 +137,7 @@ class _LoadingSkeletonState extends State<LoadingSkeleton>
   }
 }
 
-/// Section heading row: KoHo title with an optional trailing action.
+/// Section heading row: Poppins title with an optional trailing action.
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     required this.title,
@@ -171,7 +171,7 @@ class SectionHeader extends StatelessWidget {
                   Text(
                     actionLabel!,
                     style: const TextStyle(
-                      color: AppColors.deepOrange,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -180,7 +180,7 @@ class SectionHeader extends StatelessWidget {
                   const Icon(
                     Icons.arrow_forward_rounded,
                     size: 16,
-                    color: AppColors.deepOrange,
+                    color: AppColors.primary,
                   ),
                 ],
               ),

@@ -16,7 +16,7 @@ void main() {
   group('AppCard content', () {
     testWidgets('title, description, child, footer render', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppCard(
             title: 'Title',
             description: 'Desc',
@@ -33,7 +33,7 @@ void main() {
     testWidgets('leading and trailing render, header hidden when all absent',
         (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppCard(
             leading: Icon(Icons.star),
             trailing: Icon(Icons.flag),
@@ -45,7 +45,7 @@ void main() {
       expect(find.byIcon(Icons.flag), findsOneWidget);
 
       await tester.pumpWidget(
-        shadHarness(const AppCard(testId: 'bare', child: Text('Bare'))),
+        themeHarness(const AppCard(testId: 'bare', child: Text('Bare'))),
       );
       expect(find.text('Bare'), findsOneWidget);
       expect(
@@ -57,36 +57,35 @@ void main() {
       );
     });
 
-    testWidgets('tint, gradient, and border overrides apply', (tester) async {
+    testWidgets('tint and border overrides apply', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppCard(tint: Colors.red, child: Text('T')),
         ),
       );
       expect(cardDeco(tester).color, Colors.red);
 
-      const grad = LinearGradient(colors: [Colors.red, Colors.blue]);
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppCard(
             title: 'G',
             description: 'D',
-            gradient: grad,
+            tint: Colors.blue,
             borderColor: Colors.green,
           ),
         ),
       );
       final deco = cardDeco(tester);
-      expect(deco.gradient, grad);
-      expect(deco.color, isNull);
-      expect(deco.border, isNull); // gradient drops the border
+      expect(deco.gradient, isNull);
+      expect(deco.color, Colors.blue);
+      expect(deco.border, isNull); // tint drops the border
     });
   });
 
   group('AppCard padding', () {
     testWidgets('compact uses 16, desktop 20, override wins', (tester) async {
       compactSize(tester);
-      await tester.pumpWidget(shadHarness(const AppCard(child: Text('C'))));
+      await tester.pumpWidget(themeHarness(const AppCard(child: Text('C'))));
       expect(
         tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
@@ -96,7 +95,7 @@ void main() {
       );
 
       desktopSize(tester);
-      await tester.pumpWidget(shadHarness(const AppCard(child: Text('C'))));
+      await tester.pumpWidget(themeHarness(const AppCard(child: Text('C'))));
       expect(
         tester
             .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
@@ -106,7 +105,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppCard(
             padding: EdgeInsets.all(4),
             child: Text('C'),
@@ -127,7 +126,7 @@ void main() {
     testWidgets('onTap fires, testId keys the subtree', (tester) async {
       var tapped = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppCard(
             testId: 'card-1',
             onTap: () => tapped++,
@@ -143,15 +142,15 @@ void main() {
   });
 
   group('AppCard dark mode', () {
-    testWidgets('builds with and without gradient', (tester) async {
+    testWidgets('builds with and without tint', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const Column(
             children: [
               AppCard(title: 'Plain'),
               AppCard(
-                title: 'Grad',
-                gradient: AppColors.primaryGradient,
+                title: 'Tinted',
+                tint: AppColors.primary,
               ),
             ],
           ),
@@ -159,7 +158,7 @@ void main() {
         ),
       );
       expect(find.text('Plain'), findsOneWidget);
-      expect(find.text('Grad'), findsOneWidget);
+      expect(find.text('Tinted'), findsOneWidget);
     });
   });
 }

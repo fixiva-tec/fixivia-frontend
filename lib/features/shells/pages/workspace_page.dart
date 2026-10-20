@@ -173,12 +173,15 @@ class StatusBadge extends StatelessWidget {
             decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text(
-            pretty(label),
-            style: TextStyle(
-              color: dark ? tone.lightenForDark() : tone.darkenForLight(),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              pretty(label),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: dark ? tone.lightenForDark() : tone.darkenForLight(),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -203,7 +206,7 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = tint ?? AppColors.brightOrange;
+    final accent = tint ?? AppColors.primaryBright;
     return AppCard(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -341,7 +344,7 @@ Color _tone(String label) {
       key.contains('progress') ||
       key.contains('schedul') ||
       key.contains('assign')) {
-    return AppColors.deepOrange;
+    return AppColors.primary;
   }
   if (key.contains('featured')) return AppColors.warning;
   return const Color(0xFF525252);

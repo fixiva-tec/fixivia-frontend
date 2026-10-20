@@ -24,7 +24,7 @@ void main() {
 
   group('AppSelect display', () {
     testWidgets('label, placeholder, and initial value render', (tester) async {
-      await tester.pumpWidget(shadHarness(select(initialValue: 'a')));
+      await tester.pumpWidget(themeHarness(select(initialValue: 'a')));
       expect(find.text('Pick one'), findsOneWidget);
       expect(find.text('picked:a'), findsOneWidget);
     });
@@ -32,7 +32,7 @@ void main() {
     testWidgets('selectedOptionBuilder runs per item', (tester) async {
       var built = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppSelect<String>(
             testId: 'sel-2',
             items: items,
@@ -53,7 +53,7 @@ void main() {
         (tester) async {
       String? picked;
       await tester.pumpWidget(
-        shadHarness(select(onChanged: (v) => picked = v)),
+        themeHarness(select(onChanged: (v) => picked = v)),
       );
       await tester.tap(find.byKey(const Key('sel-1')));
       await tester.pumpAndSettle();
@@ -64,7 +64,7 @@ void main() {
     });
 
     testWidgets('null onChanged disables the dropdown', (tester) async {
-      await tester.pumpWidget(shadHarness(select()));
+      await tester.pumpWidget(themeHarness(select()));
       await tester.tap(find.byKey(const Key('sel-1')));
       await tester.pumpAndSettle();
       // Menu never opens: only the closed field exists.
@@ -75,7 +75,7 @@ void main() {
   group('AppSelect dark mode', () {
     testWidgets('builds under dark', (tester) async {
       await tester.pumpWidget(
-        shadHarness(select(initialValue: 'b'), dark: true),
+        themeHarness(select(initialValue: 'b'), dark: true),
       );
       expect(find.text('picked:b'), findsOneWidget);
     });

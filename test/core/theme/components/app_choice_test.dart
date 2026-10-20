@@ -10,7 +10,7 @@ void main() {
     testWidgets('tap fires and label shows', (tester) async {
       var tapped = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppChoice(
             label: 'AC Repair',
             selected: false,
@@ -29,7 +29,7 @@ void main() {
     testWidgets('selected grows a check and keeps the tap', (tester) async {
       var tapped = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppChoice(
             label: 'AC Repair',
             selected: true,
@@ -46,7 +46,7 @@ void main() {
 
     testWidgets('optional icon renders', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppChoice(
             label: 'Labeled',
             selected: false,
@@ -64,7 +64,7 @@ void main() {
     testWidgets('hover enter and exit do not break taps', (tester) async {
       var tapped = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppChoice(
             label: 'Hov',
             selected: false,
@@ -94,7 +94,7 @@ void main() {
   group('AppChoice dark mode', () {
     testWidgets('selected and plain build under dark', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           Column(
             children: [
               AppChoice(

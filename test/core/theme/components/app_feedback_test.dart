@@ -10,7 +10,7 @@ void main() {
         (tester) async {
       var tapped = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           EmptyState(
             title: 'Nothing here',
             hint: 'Try again later',
@@ -31,7 +31,7 @@ void main() {
 
     testWidgets('minimal variant omits hint and action', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const EmptyState(title: 'Empty', icon: Icons.star),
         ),
       );
@@ -43,30 +43,30 @@ void main() {
 
   group('LoadingSkeleton', () {
     testWidgets('default renders three rows of bars', (tester) async {
-      await tester.pumpWidget(shadHarness(const LoadingSkeleton()));
+      await tester.pumpWidget(themeHarness(const LoadingSkeleton()));
       await tester.pump(const Duration(milliseconds: 100));
       // Two bars per row.
       expect(find.byType(FractionallySizedBox), findsNWidgets(6));
     });
 
     testWidgets('row count scales, zero renders empty', (tester) async {
-      await tester.pumpWidget(shadHarness(const LoadingSkeleton(rows: 2)));
+      await tester.pumpWidget(themeHarness(const LoadingSkeleton(rows: 2)));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byType(FractionallySizedBox), findsNWidgets(4));
 
-      await tester.pumpWidget(shadHarness(const LoadingSkeleton(rows: 0)));
+      await tester.pumpWidget(themeHarness(const LoadingSkeleton(rows: 0)));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byType(FractionallySizedBox), findsNothing);
     });
 
     testWidgets('animation ticks without errors, dark builds', (tester) async {
-      await tester.pumpWidget(shadHarness(const LoadingSkeleton()));
+      await tester.pumpWidget(themeHarness(const LoadingSkeleton()));
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byType(FractionallySizedBox), findsNWidgets(6));
 
       await tester.pumpWidget(
-        shadHarness(const LoadingSkeleton(rows: 1), dark: true),
+        themeHarness(const LoadingSkeleton(rows: 1), dark: true),
       );
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byType(FractionallySizedBox), findsNWidgets(2));
@@ -76,7 +76,7 @@ void main() {
   group('SectionHeader', () {
     testWidgets('title alone shows no action', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const SectionHeader(title: 'Jobs')),
+        themeHarness(const SectionHeader(title: 'Jobs')),
       );
       expect(find.text('Jobs'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_forward_rounded), findsNothing);
@@ -84,21 +84,21 @@ void main() {
 
     testWidgets('action needs both label and handler', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           SectionHeader(title: 'A', actionLabel: 'More', onAction: () {}),
         ),
       );
       expect(find.text('More'), findsOneWidget);
 
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const SectionHeader(title: 'B', actionLabel: 'More'),
         ),
       );
       expect(find.text('More'), findsNothing);
 
       await tester.pumpWidget(
-        shadHarness(SectionHeader(title: 'C', onAction: () {})),
+        themeHarness(SectionHeader(title: 'C', onAction: () {})),
       );
       expect(find.byIcon(Icons.arrow_forward_rounded), findsNothing);
     });
@@ -106,7 +106,7 @@ void main() {
     testWidgets('action tap fires and honors its test id', (tester) async {
       var fired = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           SectionHeader(
             title: 'Jobs',
             actionLabel: 'View all',

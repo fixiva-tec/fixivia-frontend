@@ -1,36 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 /// Fixiva brand tokens (docs/Req/18-branding.md).
 ///
-/// Primary identity stays orange gradient + charcoal. The extra tones below
-/// are supporting washes and status colors only — never a second primary.
+/// v2 rebrand: flat blue primary on a slate-tinted canvas, dark navy rail.
+/// No gradients anywhere — brand surfaces are flat fills. Status colors
+/// double as the dashboard accents (green / amber / blue / red).
 abstract final class AppColors {
-  // Brand core (do not change).
-  static const deepOrange = Color(0xFFFD3F02);
-  static const warmOrange = Color(0xFFFD8D08);
-  static const brightOrange = Color(0xFFFF6B35);
-  static const charcoal = Color(0xFF171717);
-  static const lightGray = Color(0xFFF3F3F3);
+  // Brand core.
+  static const primary = Color(0xFF2563EB);
+  static const primaryDeep = Color(0xFF1E40AF);
+  static const primaryBright = Color(0xFF3B82F6);
+  static const navy = Color(0xFF0B1526);
+  static const canvas = Color(0xFFEDF1F7);
+  static const ink = Color(0xFF1E293B);
   static const white = Color(0xFFFFFFFF);
-  static const muted = Color(0xFF737373);
-  static const border = Color(0xFFE6E6E6);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFE2E8F0);
 
-  static const primaryGradient = LinearGradient(
-    colors: [deepOrange, warmOrange],
-  );
-  static const primaryGradientDiagonal = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [deepOrange, warmOrange],
-  );
+  // Supporting blue washes.
+  static const wash = Color(0xFFDBEAFE);
+  static const washSoft = Color(0xFFEFF6FF);
 
-  // Supporting warm tones.
+  // Kept semantic accent (dashboard icons, warnings).
   static const amber = Color(0xFFFFB020);
-  static const peach = Color(0xFFFFE8D3);
-  static const peachSoft = Color(0xFFFFF3E8);
-  static const ember = Color(0xFFC22E00);
 
   // Dark surfaces.
   static const charcoalDeep = Color(0xFF0C0C0C);
@@ -54,11 +47,11 @@ abstract final class AppColors {
 
   /// Page canvas for the current brightness.
   static Color canvasOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkCanvas : lightGray;
+      Theme.of(context).brightness == Brightness.dark ? darkCanvas : canvas;
 
   /// Primary text for the current brightness.
   static Color inkOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkText : charcoal;
+      Theme.of(context).brightness == Brightness.dark ? darkText : ink;
 
   /// Secondary text for the current brightness.
   static Color subOf(BuildContext context) =>
@@ -77,7 +70,7 @@ abstract final class AppRadii {
   static const pill = 999.0;
 }
 
-/// Shared shadows. Orange glow is reserved for primary CTAs and the
+/// Shared shadows. Blue glow is reserved for primary CTAs and the
 /// selected nav item — cards use the soft neutral shadow.
 abstract final class AppShadows {
   static const soft = [
@@ -96,53 +89,53 @@ abstract final class AppShadows {
   ];
   static const glow = [
     BoxShadow(
-      color: Color(0x59FD5A06),
+      color: Color(0x592563EB),
       blurRadius: 18,
       offset: Offset(0, 8),
     ),
   ];
   static const glowSoft = [
     BoxShadow(
-      color: Color(0x33FD5A06),
+      color: Color(0x332563EB),
       blurRadius: 12,
       offset: Offset(0, 4),
     ),
   ];
 }
 
-/// KoHo headings + Inter body, per the brand doc.
+/// Poppins headings + Inter body, per the brand doc.
 TextTheme appTextTheme(Brightness brightness) {
   final base = brightness == Brightness.dark
       ? ThemeData.dark().textTheme
       : ThemeData.light().textTheme;
   final ink = brightness == Brightness.dark
       ? AppColors.darkText
-      : AppColors.charcoal;
+      : AppColors.ink;
   final sub = brightness == Brightness.dark
       ? AppColors.darkMuted
       : AppColors.muted;
   return base.copyWith(
-    displaySmall: GoogleFonts.koHo(
+    displaySmall: GoogleFonts.poppins(
       fontSize: 40,
       fontWeight: FontWeight.w700,
       height: 1.05,
       letterSpacing: -0.5,
       color: ink,
     ),
-    headlineMedium: GoogleFonts.koHo(
+    headlineMedium: GoogleFonts.poppins(
       fontSize: 30,
       fontWeight: FontWeight.w700,
       height: 1.12,
       letterSpacing: -0.3,
       color: ink,
     ),
-    headlineSmall: GoogleFonts.koHo(
+    headlineSmall: GoogleFonts.poppins(
       fontSize: 24,
       fontWeight: FontWeight.w700,
       height: 1.2,
       color: ink,
     ),
-    titleLarge: GoogleFonts.koHo(
+    titleLarge: GoogleFonts.poppins(
       fontSize: 19,
       fontWeight: FontWeight.w600,
       height: 1.25,
@@ -185,11 +178,11 @@ ThemeData buildAppTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme =
       ColorScheme.fromSeed(
-        seedColor: AppColors.deepOrange,
+        seedColor: AppColors.primary,
         brightness: brightness,
       ).copyWith(
-        primary: AppColors.deepOrange,
-        secondary: AppColors.warmOrange,
+        primary: AppColors.primary,
+        secondary: AppColors.primaryDeep,
         surface: dark ? AppColors.darkSurface : AppColors.white,
         error: AppColors.danger,
       );
@@ -197,60 +190,29 @@ ThemeData buildAppTheme(Brightness brightness) {
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor: dark ? AppColors.darkCanvas : AppColors.lightGray,
+    scaffoldBackgroundColor: dark ? AppColors.darkCanvas : AppColors.canvas,
     textTheme: appTextTheme(brightness),
     dividerColor: dark ? AppColors.darkLine : AppColors.border,
     datePickerTheme: DatePickerThemeData(
-      headerForegroundColor: AppColors.deepOrange,
+      headerForegroundColor: AppColors.primary,
       dayForegroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return AppColors.white;
-        return dark ? AppColors.darkText : AppColors.charcoal;
+        return dark ? AppColors.darkText : AppColors.ink;
       }),
       dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppColors.deepOrange;
+          return AppColors.primary;
         }
         return Colors.transparent;
       }),
       todayForegroundColor: const WidgetStatePropertyAll(
-        AppColors.deepOrange,
+        AppColors.primary,
       ),
     ),
   );
 }
 
-ShadThemeData appShadTheme(Brightness brightness) {
-  final dark = brightness == Brightness.dark;
-  final scheme = dark
-      ? const ShadOrangeColorScheme.dark(
-          primary: AppColors.deepOrange,
-          ring: AppColors.deepOrange,
-          background: Color(0xFF0C0A09),
-          foreground: Color(0xFFFAFAF9),
-          card: Color(0xFF171717),
-          cardForeground: Color(0xFFFAFAF9),
-        )
-      : const ShadOrangeColorScheme.light(
-          primary: AppColors.deepOrange,
-          ring: AppColors.deepOrange,
-          background: AppColors.lightGray,
-          foreground: AppColors.charcoal,
-          card: AppColors.white,
-          cardForeground: AppColors.charcoal,
-          secondary: Color(0xFFF3F3F3),
-          muted: Color(0xFFF3F3F3),
-          border: Color(0xFFE6E6E6),
-          input: Color(0xFFE6E6E6),
-        );
-
-  return ShadThemeData(
-    brightness: brightness,
-    colorScheme: scheme,
-    textTheme: ShadTextTheme.fromGoogleFont(GoogleFonts.inter),
-  );
-}
-
-/// Compact vs desktop using shadcn md breakpoint (768).
+/// Compact vs desktop (md breakpoint: 768).
 bool appIsCompact(BuildContext context) {
   return MediaQuery.sizeOf(context).width < 768;
 }

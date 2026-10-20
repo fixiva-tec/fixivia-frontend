@@ -10,7 +10,7 @@ void main() {
     final handle = tester.ensureSemantics();
     try {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppTestId(testId: 'my-id', child: Text('Hi')),
         ),
       );

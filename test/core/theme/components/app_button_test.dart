@@ -21,12 +21,12 @@ void main() {
     testWidgets('every variant renders, taps, and styles distinctly',
         (tester) async {
       final become = {
-        AppButtonVariant.primary: AppColors.primaryGradient,
+        AppButtonVariant.primary: AppColors.primary,
       };
       for (final variant in AppButtonVariant.values) {
         var fired = 0;
         await tester.pumpWidget(
-          shadHarness(
+          themeHarness(
             AppButton(
               text: 'Go $variant',
               testId: 'btn-$variant',
@@ -40,15 +40,16 @@ void main() {
         await tester.pump();
         expect(fired, 1);
         final deco = buttonDeco(tester, 'btn-$variant');
+        expect(deco.gradient, isNull);
         if (become.containsKey(variant)) {
-          expect(deco.gradient, become[variant]);
+          expect(deco.color, become[variant]);
         }
       }
     });
 
     testWidgets('secondary flips color with brightness', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'S',
             testId: 'b-sec',
@@ -57,10 +58,10 @@ void main() {
           ),
         ),
       );
-      expect(buttonDeco(tester, 'b-sec').color, AppColors.charcoal);
+      expect(buttonDeco(tester, 'b-sec').color, AppColors.ink);
 
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'S',
             testId: 'b-sec',
@@ -70,14 +71,14 @@ void main() {
           dark: true,
         ),
       );
-      // Shad animates theme switches; settle onto the dark theme first.
+      // Material animates theme switches; settle onto the dark theme first.
       await tester.pumpAndSettle();
       expect(buttonDeco(tester, 'b-sec').color, AppColors.white);
     });
 
-    testWidgets('onBrand keeps a white pill with orange text', (tester) async {
+    testWidgets('onBrand keeps a white pill with blue text', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'Brand',
             testId: 'b-brand',
@@ -88,7 +89,7 @@ void main() {
       );
       expect(buttonDeco(tester, 'b-brand').color, AppColors.white);
       final label = tester.widget<Text>(find.text('Brand'));
-      expect(label.style!.color, AppColors.deepOrange);
+      expect(label.style!.color, AppColors.primary);
     });
   });
 
@@ -101,7 +102,7 @@ void main() {
       };
       for (final entry in pads.entries) {
         await tester.pumpWidget(
-          shadHarness(
+          themeHarness(
             AppButton(
               text: 'Sized',
               testId: 'b-size',
@@ -132,7 +133,7 @@ void main() {
     testWidgets('tap fires and shows the arrow', (tester) async {
       var fired = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'Next',
             testId: 'b-next',
@@ -151,7 +152,7 @@ void main() {
         (tester) async {
       var fired = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'Busy',
             testId: 'b-busy',
@@ -174,7 +175,7 @@ void main() {
         (tester) async {
       var fired = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           Column(
             children: [
               AppButton(
@@ -211,7 +212,7 @@ void main() {
 
     testWidgets('leading and trailing slots render', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(
             text: 'Both',
             testId: 'b-both',
@@ -230,7 +231,7 @@ void main() {
     testWidgets('compact fills, desktop hugs, expands overrides', (tester) async {
       Future<double?> widthOf({bool? expands}) async {
         await tester.pumpWidget(
-          shadHarness(
+          themeHarness(
             AppButton(
               text: 'W',
               testId: 'b-w',
@@ -265,7 +266,7 @@ void main() {
     testWidgets('shows the icon with no text and fixed padding', (tester) async {
       var fired = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton.iconOnly(
             testId: 'b-icon',
             icon: Icons.add,
@@ -299,7 +300,7 @@ void main() {
   group('AppButton press and hover', () {
     testWidgets('press scales down and back', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(text: 'P', testId: 'b-p', onPressed: () {}),
         ),
       );
@@ -319,7 +320,7 @@ void main() {
 
     testWidgets('cancel resets the press', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(text: 'P', testId: 'b-p', onPressed: () {}),
         ),
       );
@@ -334,7 +335,7 @@ void main() {
 
     testWidgets('hover lifts and glows, exit settles', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppButton(text: 'H', testId: 'b-h', onPressed: () {}),
         ),
       );
@@ -368,7 +369,7 @@ void main() {
 
     testWidgets('hover tints outline and ghost', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           Column(
             children: [
               AppButton(
@@ -397,13 +398,13 @@ void main() {
       await tester.pump();
       expect(
         (buttonDeco(tester, 'b-ho').border! as Border).top.color,
-        AppColors.brightOrange,
+        AppColors.primaryBright,
       );
       await gesture.moveTo(tester.getCenter(find.byKey(const Key('b-hg'))));
       await tester.pump();
       expect(
         buttonDeco(tester, 'b-hg').color,
-        AppColors.charcoal.withValues(alpha: 0.06),
+        AppColors.ink.withValues(alpha: 0.06),
       );
     });
   });
@@ -411,7 +412,7 @@ void main() {
   group('AppButton dark mode', () {
     testWidgets('outline and ghost pick dark fills', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           Column(
             children: [
               AppButton(

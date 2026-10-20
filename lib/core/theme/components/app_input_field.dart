@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../app_theme.dart';
 import 'app_test_id.dart';
 
-/// In-house text field: filled rounded input with an orange focus ring.
+/// In-house text field: filled rounded input with a blue focus ring.
 class AppInputField extends StatefulWidget {
   const AppInputField({
     required this.testId,
@@ -82,7 +82,7 @@ class _AppInputFieldState extends State<AppInputField> {
                 borderRadius: BorderRadius.circular(AppRadii.md),
                 border: Border.all(
                   color: _focused
-                      ? AppColors.brightOrange
+                      ? AppColors.primaryBright
                       : AppColors.lineOf(context),
                   width: _focused ? 1.6 : 1,
                 ),
@@ -110,7 +110,7 @@ class _AppInputFieldState extends State<AppInputField> {
                         fontWeight: FontWeight.w500,
                         color: AppColors.inkOf(context),
                       ),
-                      cursorColor: AppColors.deepOrange,
+                      cursorColor: AppColors.primary,
                       buildCounter:
                           (
                             _, {

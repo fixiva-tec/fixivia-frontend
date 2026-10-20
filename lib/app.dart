@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'api/client.dart';
 import 'core/session.dart';
@@ -33,45 +32,36 @@ class _FixviaAppState extends State<FixviaApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ShadApp.custom(
+    return MaterialApp(
+      title: 'Fixiva',
+      locale: widget.locale,
+      theme: buildAppTheme(Brightness.light),
+      darkTheme: buildAppTheme(Brightness.dark),
       themeMode: widget.themeMode,
-      theme: appShadTheme(Brightness.light),
-      darkTheme: appShadTheme(Brightness.dark),
-      appBuilder: (context) {
-        return MaterialApp(
-          title: 'Fixiva',
-          locale: widget.locale,
-          theme: buildAppTheme(Brightness.light),
-          darkTheme: buildAppTheme(Brightness.dark),
-          themeMode: widget.themeMode,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalShadLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          builder: (context, child) => ShadAppBuilder(child: child!),
-          home: _user == null
-              ? LandingPage(
-                  api: widget.api,
-                  authApi: widget.authApi,
-                  onAuthenticated: (result) {
-                    widget.api.token = result.token;
-                    setState(() => _user = result.user);
-                  },
-                )
-              : shellFor(
-                  _user!,
-                  widget.api,
-                  onLogout: () {
-                    widget.api.token = null;
-                    setState(() => _user = null);
-                  },
-                ),
-        );
-      },
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: _user == null
+          ? LandingPage(
+              api: widget.api,
+              authApi: widget.authApi,
+              onAuthenticated: (result) {
+                widget.api.token = result.token;
+                setState(() => _user = result.user);
+              },
+            )
+          : shellFor(
+              _user!,
+              widget.api,
+              onLogout: () {
+                widget.api.token = null;
+                setState(() => _user = null);
+              },
+            ),
     );
   }
 }

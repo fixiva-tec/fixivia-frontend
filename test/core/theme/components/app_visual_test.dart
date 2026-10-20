@@ -53,12 +53,12 @@ void main() {
   group('FxServiceTile', () {
     testWidgets('default, selected, onBrand, and custom size', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const FxServiceTile(icon: Icons.star)),
+        themeHarness(const FxServiceTile(icon: Icons.star)),
       );
       expect(find.byIcon(Icons.star), findsOneWidget);
 
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const Column(
             children: [
               FxServiceTile(icon: Icons.star, selected: true, size: 60),
@@ -78,7 +78,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        shadHarness(const FxServiceTile(icon: Icons.star), dark: true),
+        themeHarness(const FxServiceTile(icon: Icons.star), dark: true),
       );
       expect(find.byIcon(Icons.star), findsOneWidget);
     });
@@ -87,7 +87,7 @@ void main() {
   group('FxAvatar initials', () {
     testWidgets('two words, one word, blank, and padded names', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const Column(
             children: [
               FxAvatar(name: 'Ada Byron'),
@@ -109,7 +109,7 @@ void main() {
   group('FxRings', () {
     testWidgets('paints, repaints on color change only', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const SizedBox.square(
+        themeHarness(const SizedBox.square(
           dimension: 120,
           child: FxRings(),
         )),
@@ -118,19 +118,79 @@ void main() {
 
       // Same color: shouldRepaint false path.
       await tester.pumpWidget(
-        shadHarness(const SizedBox.square(
+        themeHarness(const SizedBox.square(
           dimension: 120,
           child: FxRings(),
         )),
       );
       // New color: shouldRepaint true path.
       await tester.pumpWidget(
-        shadHarness(const SizedBox.square(
+        themeHarness(const SizedBox.square(
           dimension: 120,
           child: FxRings(color: Colors.red),
         )),
       );
       expect(find.byType(CustomPaint), findsWidgets);
+    });
+  });
+
+  group('serviceImageFor', () {
+    test('maps known slugs to bundled assets', () {
+      expect(
+        serviceImageFor('water-purifier-repair'),
+        startsWith('assets/services/'),
+      );
+      expect(serviceImageFor('ac-mechanic'), startsWith('assets/services/'));
+    });
+
+    test('unknown, null, and empty slugs have no image', () {
+      expect(serviceImageFor('plumbing'), isNull);
+      expect(serviceImageFor(null), isNull);
+      expect(serviceImageFor(''), isNull);
+    });
+  });
+
+  group('FxServiceImage', () {
+    testWidgets('unknown slug falls back to the glyph tile', (tester) async {
+      await tester.pumpWidget(
+        themeHarness(const FxServiceImage(slug: 'plumbing', size: 52)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(FxServiceTile), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+      expect(find.byIcon(Icons.water_drop_rounded), findsOneWidget);
+    });
+
+    testWidgets('known slug renders the bundled asset', (tester) async {
+      await tester.pumpWidget(
+        themeHarness(
+          const FxServiceImage(slug: 'water-purifier-repair', size: 52),
+        ),
+      );
+      await tester.pump();
+      final img = tester.widget<Image>(find.byType(Image));
+      expect(
+        (img.image as AssetImage).assetName,
+        'assets/services/water-purifier-repair.jpg',
+      );
+      expect(img.width, 52);
+      expect(img.height, 52);
+    });
+  });
+
+  group('ComingSoonBadge', () {
+    testWidgets('single line that never wraps', (tester) async {
+      await tester.pumpWidget(
+        themeHarness(
+          const SizedBox(width: 60, child: ComingSoonBadge()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final text = tester.widget<Text>(find.text('Coming soon'));
+      expect(text.maxLines, 1);
+      expect(text.softWrap, isFalse);
+      // Narrow box: scaled down, still one line, no overflow thrown.
+      expect(tester.getSize(find.text('Coming soon')).height, lessThan(30));
     });
   });
 }

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
 import '../../core/booking_rules.dart';
+import '../../core/catalog.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/components/components.dart';
 import '../../l10n/app_localizations.dart';
+import 'booking_confirmed_dialog.dart';
 import 'guest_draft.dart';
 
 class BookingFlow extends StatefulWidget {
@@ -12,6 +14,8 @@ class BookingFlow extends StatefulWidget {
     required this.api,
     this.initialCategoryId,
     this.onGuestConfirm,
+    this.onConfirmed,
+    this.bookableSlugs,
     super.key,
   });
 
@@ -24,6 +28,15 @@ class BookingFlow extends StatefulWidget {
   /// routes through login and submits via [submitGuestDraft]. Required
   /// for guests; unused once logged in.
   final Future<void> Function(GuestDraft draft)? onGuestConfirm;
+
+  /// Opens the posted booking when the customer taps "View booking" in
+  /// the confirmation popup. Without it the flow simply pops home.
+  final void Function(String bookingId)? onConfirmed;
+
+  /// Slugs selectable in step 0. Defaults to the launch set; tests widen
+  /// it to cover catalog states (e.g. problem-less categories) that the
+  /// live set cannot reach.
+  final Set<String>? bookableSlugs;
 
   @override
   State<BookingFlow> createState() => _BookingFlowState();
@@ -46,6 +59,9 @@ class _BookingFlowState extends State<BookingFlow> {
   /// Guests have no token: same steps, but the address is typed in the
   /// flow and the draft submits after the login gate.
   bool get _guest => widget.api.token == null;
+
+  bool _live(String? slug) => (widget.bookableSlugs ?? liveBookingSlugs)
+      .contains((slug ?? '').toLowerCase());
 
   List<dynamic> get _featuredCats =>
       _cats.where((c) => c['featured_rank'] != null).toList();
@@ -85,6 +101,14 @@ class _BookingFlowState extends State<BookingFlow> {
         _cats = cats;
         _addresses = addrs;
         if (addrs.isNotEmpty) _addressId = addrs.first['id'] as String;
+        // A preselected category outside the live set starts unpicked.
+        if (_categoryId != null) {
+          final pre = _cat;
+          if (pre != null &&
+              !_live('${pre['slug'] ?? ''}')) {
+            _categoryId = null;
+          }
+        }
         _loaded = true;
       });
     } catch (e) {
@@ -216,12 +240,21 @@ class _BookingFlowState extends State<BookingFlow> {
                   final c = featured[i] as Map<String, dynamic>;
                   final id = c['id'] as String;
                   final selected = _categoryId == id;
+                  final live = _live('${c['slug'] ?? ''}');
                   return _ServiceCard(
                     name: '${c['name_en']}',
                     slug: '${c['slug'] ?? ''}',
                     testId: 'customer_booking_category_${c['slug']}',
                     selected: selected,
-                    onTap: () => setState(() => _categoryId = id),
+                    enabled: live,
+                    onTap: () => setState(() {
+                      if (!live) {
+                        _error = '${c['name_en']} is coming soon';
+                        return;
+                      }
+                      _error = null;
+                      _categoryId = id;
+                    }),
                   );
                 },
               );
@@ -240,7 +273,9 @@ class _BookingFlowState extends State<BookingFlow> {
                 for (final c in other)
                   AppSelectItem(
                     value: c['id'] as String,
-                    label: '${c['name_en']}',
+                    label: _live('${c['slug'] ?? ''}')
+                        ? '${c['name_en']}'
+                        : '${c['name_en']} (coming soon)',
                   ),
               ],
               selectedOptionBuilder: (context, value) {
@@ -249,7 +284,23 @@ class _BookingFlowState extends State<BookingFlow> {
                 }
                 return Text(value);
               },
-              onChanged: (v) => setState(() => _categoryId = v),
+              onChanged: (v) {
+                final pick = other.firstWhere(
+                  (c) => c['id'] == v,
+                  orElse: () => <String, dynamic>{},
+                );
+                if (!_live('${pick['slug'] ?? ''}')) {
+                  setState(() {
+                    _categoryId = null;
+                    _error = '${pick['name_en']} is coming soon';
+                  });
+                  return;
+                }
+                setState(() {
+                  _error = null;
+                  _categoryId = v;
+                });
+              },
             ),
           ],
         ],
@@ -276,7 +327,7 @@ class _BookingFlowState extends State<BookingFlow> {
         children: [
           Row(
             children: [
-              FxServiceTile(icon: categoryIcon('${cat['slug']}'), size: 44),
+              FxServiceImage(slug: '${cat['slug']}', size: 48),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -299,12 +350,9 @@ class _BookingFlowState extends State<BookingFlow> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  gradient: _problems.isEmpty
-                      ? null
-                      : AppColors.primaryGradient,
                   color: _problems.isEmpty
-                      ? AppColors.lightGray
-                      : null,
+                      ? AppColors.canvas
+                      : AppColors.primary,
                   borderRadius: BorderRadius.circular(AppRadii.pill),
                 ),
                 child: Text(
@@ -376,7 +424,7 @@ class _BookingFlowState extends State<BookingFlow> {
     return Column(
       children: [
         AppCard(
-          gradient: AppColors.primaryGradientDiagonal,
+          tint: AppColors.primary,
           child: Row(
             children: [
               FxServiceTile(
@@ -583,6 +631,12 @@ class _BookingFlowState extends State<BookingFlow> {
       setState(() => _error = 'Pick a category');
       return;
     }
+    if (_step == 0 && _cat != null) {
+      if (!_live('${_cat!['slug'] ?? ''}')) {
+        setState(() => _error = 'That service is coming soon');
+        return;
+      }
+    }
     if (_step == 1 && _problems.isEmpty) {
       setState(() => _error = 'Pick at least one problem');
       return;
@@ -620,14 +674,30 @@ class _BookingFlowState extends State<BookingFlow> {
       return;
     }
     try {
-      await widget.api.post('/v1/bookings', {
+      final posted = await widget.api.post('/v1/bookings', {
         'address_id': _addressId,
         'category_id': _categoryId,
         'issue_template_ids': _problems.toList(),
         'service_date': _date.toIso8601String().split('T').first,
         'slot': _slot,
-      });
-      if (mounted) Navigator.pop(context, true);
+      }) as Map<String, dynamic>;
+      if (!mounted) return;
+      final confirm = widget.onConfirmed;
+      final slotLabel = _slot == 'evening' ? 'Evening' : 'Morning';
+      final view = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => BookingConfirmedDialog(
+          serviceName: _cat == null ? 'Booking' : '${_cat!['name_en']}',
+          subtitle:
+              '${_date.toIso8601String().split('T').first} · $slotLabel · we will notify you on accept.',
+          offerView: confirm != null,
+        ),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      // The flow is gone; the caller's context opens the detail page.
+      if (view == true) confirm?.call('${posted['id']}');
     } catch (e) {
       setState(() => _error = e.toString());
     }
@@ -660,8 +730,7 @@ class _Stepper extends StatelessWidget {
                   height: 2,
                   margin: const EdgeInsets.symmetric(horizontal: 6),
                   decoration: BoxDecoration(
-                    gradient: i <= step ? AppColors.primaryGradient : null,
-                    color: i <= step ? null : AppColors.border,
+                    color: i <= step ? AppColors.primary : AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -704,8 +773,7 @@ class _StepDot extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            gradient: (active || done) ? AppColors.primaryGradient : null,
-            color: (active || done) ? null : AppColors.lightGray,
+            color: (active || done) ? AppColors.primary : AppColors.canvas,
             shape: BoxShape.circle,
             boxShadow: active ? AppShadows.glowSoft : const [],
             border: (active || done)
@@ -724,7 +792,7 @@ class _StepDot extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-            color: active ? AppColors.deepOrange : AppColors.muted,
+            color: active ? AppColors.primary : AppColors.muted,
           ),
         ),
       ],
@@ -739,6 +807,7 @@ class _ServiceCard extends StatelessWidget {
     required this.testId,
     required this.selected,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String name;
@@ -746,27 +815,31 @@ class _ServiceCard extends StatelessWidget {
   final String testId;
   final bool selected;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return AppTestId(
-      testId: testId,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: AppTestId(
+        testId: testId,
+        child: MouseRegion(
+          cursor: enabled
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.basic,
+          child: GestureDetector(
+            onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              gradient: selected ? AppColors.primaryGradientDiagonal : null,
               color: selected
-                  ? null
-                  : (dark ? AppColors.charcoalSoft : AppColors.peachSoft),
+                  ? AppColors.primary
+                  : (dark ? AppColors.charcoalSoft : AppColors.washSoft),
               borderRadius: BorderRadius.circular(AppRadii.md),
               border: Border.all(
-                color: selected ? Colors.transparent : AppColors.peach,
+                color: selected ? Colors.transparent : AppColors.wash,
                 width: 1.2,
               ),
               boxShadow: selected ? AppShadows.glowSoft : const [],
@@ -781,7 +854,7 @@ class _ServiceCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    name,
+                    enabled ? name : '$name · soon',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -804,6 +877,7 @@ class _ServiceCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -859,7 +933,7 @@ class _ReviewRow extends StatelessWidget {
                 child: Text(
                   'Edit',
                   style: TextStyle(
-                    color: AppColors.deepOrange,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -922,9 +996,8 @@ class _DayStrip extends StatelessWidget {
                   duration: const Duration(milliseconds: 160),
                   width: 56,
                   decoration: BoxDecoration(
-                    gradient: sel ? AppColors.primaryGradient : null,
                     color: sel
-                        ? null
+                        ? AppColors.primary
                         : (dark
                               ? AppColors.charcoalSoft
                               : AppColors.surfaceOf(context)),
@@ -1008,15 +1081,14 @@ class _SlotCard extends StatelessWidget {
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              gradient: selected ? AppColors.primaryGradientDiagonal : null,
               color: selected
-                  ? null
+                  ? AppColors.primary
                   : (dark
                         ? AppColors.charcoalSoft
                         : AppColors.surfaceOf(context)),
               borderRadius: BorderRadius.circular(AppRadii.md),
               border: Border.all(
-                color: selected ? Colors.transparent : AppColors.peach,
+                color: selected ? Colors.transparent : AppColors.wash,
                 width: 1.2,
               ),
               boxShadow: selected ? AppShadows.glowSoft : const [],
@@ -1028,7 +1100,7 @@ class _SlotCard extends StatelessWidget {
                   size: 18,
                   color: selected
                       ? AppColors.white
-                      : AppColors.brightOrange,
+                      : AppColors.primaryBright,
                 ),
                 const SizedBox(width: 8),
                 Expanded(

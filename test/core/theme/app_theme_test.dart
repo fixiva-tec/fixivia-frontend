@@ -7,7 +7,7 @@ import 'package:fixvia/core/theme/app_theme.dart';
 /// Runs [body] while swallowing google_fonts' uncaught async load errors.
 ///
 /// Plain `test()` cases run on real async, so the font futures created by
-/// [buildAppTheme]/[appShadTheme]/[appTextTheme] fire (and fail, offline) on
+/// [buildAppTheme]/[appTextTheme] fire (and fail, offline) on
 /// a timing lottery that can sink the test running when they land. Widget
 /// tests are immune: their font futures never complete under FakeAsync.
 /// Only the google_fonts failure is swallowed; any other stray error
@@ -91,10 +91,11 @@ Future<bool> compactAt(WidgetTester tester, double width) async {
 void main() {
   group('AppColors tokens', () {
     test('brand core values are pinned', () {
-      expect(AppColors.deepOrange, const Color(0xFFFD3F02));
-      expect(AppColors.warmOrange, const Color(0xFFFD8D08));
-      expect(AppColors.brightOrange, const Color(0xFFFF6B35));
-      expect(AppColors.charcoal, const Color(0xFF171717));
+      expect(AppColors.primary, const Color(0xFF2563EB));
+      expect(AppColors.primaryDeep, const Color(0xFF1E40AF));
+      expect(AppColors.primaryBright, const Color(0xFF3B82F6));
+      expect(AppColors.ink, const Color(0xFF1E293B));
+      expect(AppColors.navy, const Color(0xFF0B1526));
       expect(AppColors.danger, const Color(0xFFDC2626));
       expect(AppColors.success, const Color(0xFF16A34A));
     });
@@ -102,8 +103,8 @@ void main() {
     testWidgets('light tokens resolve to the light palette', (tester) async {
       final light = await tokens(tester, Brightness.light);
       expect(light['surface'], AppColors.white);
-      expect(light['canvas'], AppColors.lightGray);
-      expect(light['ink'], AppColors.charcoal);
+      expect(light['canvas'], AppColors.canvas);
+      expect(light['ink'], AppColors.ink);
       expect(light['sub'], AppColors.muted);
       expect(light['line'], AppColors.border);
     });
@@ -144,10 +145,10 @@ void main() {
       await withoutFontNoise(() {
         final light = buildAppTheme(Brightness.light);
         expect(light.brightness, Brightness.light);
-        expect(light.colorScheme.primary, AppColors.deepOrange);
-        expect(light.colorScheme.secondary, AppColors.warmOrange);
+        expect(light.colorScheme.primary, AppColors.primary);
+        expect(light.colorScheme.secondary, AppColors.primaryDeep);
         expect(light.colorScheme.error, AppColors.danger);
-        expect(light.scaffoldBackgroundColor, AppColors.lightGray);
+        expect(light.scaffoldBackgroundColor, AppColors.canvas);
         expect(light.dividerColor, AppColors.border);
         expect(light.textTheme.titleLarge!.fontSize, 19);
 
@@ -164,7 +165,7 @@ void main() {
         for (final brightness in [Brightness.light, Brightness.dark]) {
           final theme = buildAppTheme(brightness);
           final picker = theme.datePickerTheme;
-          expect(picker.headerForegroundColor, AppColors.deepOrange);
+          expect(picker.headerForegroundColor, AppColors.primary);
           final dayFg = picker.dayForegroundColor!;
           expect(
             dayFg.resolve({WidgetState.selected}),
@@ -174,35 +175,19 @@ void main() {
             dayFg.resolve({}),
             brightness == Brightness.dark
                 ? AppColors.darkText
-                : AppColors.charcoal,
+                : AppColors.ink,
           );
           final dayBg = picker.dayBackgroundColor!;
           expect(
             dayBg.resolve({WidgetState.selected}),
-            AppColors.deepOrange,
+            AppColors.primary,
           );
           expect(dayBg.resolve({}), Colors.transparent);
           expect(
             picker.todayForegroundColor!.resolve({}),
-            AppColors.deepOrange,
+            AppColors.primary,
           );
         }
-      });
-    });
-  });
-
-  group('appShadTheme', () {
-    test('light and dark carry brand + brightness', () async {
-      await withoutFontNoise(() {
-        final light = appShadTheme(Brightness.light);
-        expect(light.brightness, Brightness.light);
-        expect(light.colorScheme.primary, AppColors.deepOrange);
-        expect(light.colorScheme.background, AppColors.lightGray);
-
-        final dark = appShadTheme(Brightness.dark);
-        expect(dark.brightness, Brightness.dark);
-        expect(dark.colorScheme.primary, AppColors.deepOrange);
-        expect(dark.colorScheme.background, const Color(0xFF0C0A09));
       });
     });
   });

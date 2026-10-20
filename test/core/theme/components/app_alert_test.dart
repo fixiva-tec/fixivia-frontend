@@ -8,7 +8,7 @@ void main() {
   group('AppAlert variants', () {
     testWidgets('destructive shows error icon and title', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppAlert(title: 'Failed', destructive: true),
         ),
       );
@@ -18,7 +18,7 @@ void main() {
 
     testWidgets('success shows check icon', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppAlert(title: 'Done', success: true),
         ),
       );
@@ -27,14 +27,14 @@ void main() {
 
     testWidgets('neutral shows info icon', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const AppAlert(title: 'Note')),
+        themeHarness(const AppAlert(title: 'Note')),
       );
       expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
     });
 
     testWidgets('destructive wins when both flags set', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppAlert(title: 'X', destructive: true, success: true),
         ),
       );
@@ -46,13 +46,13 @@ void main() {
   group('AppAlert description', () {
     testWidgets('shown when provided, hidden when absent', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppAlert(title: 'T', description: 'Details here'),
         ),
       );
       expect(find.text('Details here'), findsOneWidget);
 
-      await tester.pumpWidget(shadHarness(const AppAlert(title: 'T')));
+      await tester.pumpWidget(themeHarness(const AppAlert(title: 'T')));
       expect(find.text('T'), findsOneWidget);
       expect(find.byType(Column), findsWidgets);
     });
@@ -61,7 +61,7 @@ void main() {
   group('AppAlert dark mode', () {
     testWidgets('all three variants build under dark', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const Column(
             children: [
               AppAlert(title: 'A', destructive: true),

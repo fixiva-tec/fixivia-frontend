@@ -4,7 +4,7 @@ import '../app_theme.dart';
 import 'app_test_id.dart';
 
 /// Selectable pill used for categories, problems, slots, and filters.
-/// Selected pills fill with the brand gradient and grow a check mark.
+/// Selected pills fill with flat brand blue and grow a check mark.
 class AppChoice extends StatelessWidget {
   const AppChoice({
     required this.label,
@@ -34,18 +34,17 @@ class AppChoice extends StatelessWidget {
             curve: Curves.easeOut,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              gradient: selected ? AppColors.primaryGradient : null,
               color: selected
-                  ? null
+                  ? AppColors.primary
                   : hovered
-                  ? (dark ? AppColors.charcoalSoft : AppColors.peachSoft)
+                  ? (dark ? AppColors.charcoalSoft : AppColors.washSoft)
                   : AppColors.surfaceOf(context),
               borderRadius: BorderRadius.circular(AppRadii.pill),
               border: Border.all(
                 color: selected
                     ? Colors.transparent
                     : hovered
-                    ? AppColors.brightOrange
+                    ? AppColors.primaryBright
                     : AppColors.lineOf(context),
               ),
               boxShadow: selected ? AppShadows.glowSoft : const [],
@@ -59,7 +58,7 @@ class AppChoice extends StatelessWidget {
                     size: 16,
                     color: selected
                         ? AppColors.white
-                        : AppColors.brightOrange,
+                        : AppColors.primaryBright,
                   ),
                   const SizedBox(width: 7),
                 ],

@@ -12,7 +12,7 @@ Future<void> openDialog(
 }) async {
   late BuildContext ctx;
   await tester.pumpWidget(
-    shadHarness(
+    themeHarness(
       Builder(
         builder: (context) {
           ctx = context;
@@ -56,7 +56,7 @@ void main() {
     testWidgets('child renders, description optional', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           Builder(
             builder: (context) {
               ctx = context;

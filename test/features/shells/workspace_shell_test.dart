@@ -60,7 +60,8 @@ Map<String, dynamic> _posted(FakeHttp fake) =>
     jsonDecode(_lastWrite(fake).body) as Map<String, dynamic>;
 
 Future<void> _tapTab(WidgetTester tester, String label) async {
-  await tester.tap(find.text(label).first);
+  // The desktop rail is icon-only: tabs are keyed nav_<label>.
+  await tester.tap(find.byKey(Key('nav_${label.toLowerCase()}')));
   await tester.pumpAndSettle();
 }
 
@@ -254,8 +255,8 @@ void main() {
           {'id': 'c1', 'name_en': 'Plumbing', 'slug': 'plumbing'},
           {
             'id': 'c2',
-            'name_en': 'AC Repair',
-            'slug': 'ac',
+            'name_en': 'Water purifier repair',
+            'slug': 'water-purifier-repair',
             'featured_rank': 1,
           },
         ],
@@ -263,12 +264,12 @@ void main() {
       }, fake);
       await tester.pumpWidget(_shell(api, testUser(UserRole.customer)));
       await tester.pumpAndSettle();
-      expect(find.text('AC Repair'), findsOneWidget);
+      expect(find.text('Water purifier repair'), findsOneWidget);
       expect(find.text('Plumbing'), findsNothing);
 
-      await tester.ensureVisible(find.text('AC Repair'));
+      await tester.ensureVisible(find.text('Water purifier repair'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('AC Repair'));
+      await tester.tap(find.text('Water purifier repair'));
       await tester.pumpAndSettle();
       final flow =
           tester.widget<BookingFlow>(find.byType(BookingFlow));
@@ -389,9 +390,11 @@ void main() {
         _shell(testApi(fake), testUser(UserRole.servicePartner)),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Open offer'));
+      await tester.ensureVisible(
+        find.byKey(const Key('sp_offer_open_b1')),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Open offer'));
+      await tester.tap(find.byKey(const Key('sp_offer_open_b1')));
       await tester.pumpAndSettle();
       expect(find.text('Progress'), findsOneWidget);
     }
@@ -871,13 +874,18 @@ void main() {
         _shell(testApi(fake), testUser(UserRole.servicePartner)),
       );
       await tester.pumpAndSettle();
-      expect(find.text('AC Repair · 682001'), findsOneWidget);
-      expect(find.text('Slot load 2 of 5'), findsOneWidget);
-      expect(find.text('40%'), findsOneWidget);
-      expect(find.text('Slot load 9 of 5'), findsOneWidget);
-      expect(find.text('100%'), findsOneWidget);
-      expect(find.text('Slot load 1 of 0'), findsOneWidget);
-      expect(find.text('0%'), findsOneWidget);
+      expect(find.text('AC Repair'), findsOneWidget);
+      expect(find.text('682001'), findsOneWidget);
+      expect(find.text('2/5'), findsOneWidget);
+      expect(find.text('9/5'), findsOneWidget);
+      expect(find.text('1/0'), findsOneWidget);
+      final bars = tester
+          .widgetList<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator),
+          )
+          .map((b) => b.value)
+          .toList();
+      expect(bars, equals([0.4, 1.0, 0.0]));
       await tester.ensureVisible(find.byKey(const Key('sp_offer_open_o1')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('sp_offer_open_o1')));
@@ -909,7 +917,8 @@ void main() {
       await tester.pumpWidget(_shell(api, testUser(UserRole.customer)));
       await tester.pumpAndSettle();
       await _tapTab(tester, 'Addresses');
-      expect(find.text('Default'), findsOneWidget);
+      // Column header plus the default row's badge.
+      expect(find.text('Default'), findsNWidgets(2));
 
       await tester.enterText(
         find.descendant(

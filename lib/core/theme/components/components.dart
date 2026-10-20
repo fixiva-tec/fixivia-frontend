@@ -10,6 +10,7 @@ export 'app_dialog.dart';
 export 'app_feedback.dart';
 export 'app_input_field.dart';
 export 'app_select.dart';
+export 'app_table.dart';
 export 'app_visual.dart';
 export 'app_workspace.dart';
 export 'app_test_id.dart';

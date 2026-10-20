@@ -12,14 +12,21 @@ import '../../helpers/test_helpers.dart';
 
 List<Map<String, dynamic>> testCats() => [
   {
+    'id': 'c-wp',
+    'name_en': 'Water purifier repair',
+    'slug': 'water-purifier-repair',
+    'featured_rank': 1,
+    'problems': [
+      {'id': 'p1', 'text_en': 'No water flow', 'featured_rank': 1},
+      {'id': 'p2', 'text_en': 'Filter change due', 'featured_rank': null},
+    ],
+  },
+  {
     'id': 'c-ac',
     'name_en': 'AC Repair',
     'slug': 'ac-repair',
-    'featured_rank': 1,
-    'problems': [
-      {'id': 'p1', 'text_en': 'Not cooling', 'featured_rank': 1},
-      {'id': 'p2', 'text_en': 'Strange noise', 'featured_rank': null},
-    ],
+    'featured_rank': 2,
+    'problems': [],
   },
   {
     'id': 'c-pl',
@@ -59,6 +66,7 @@ Future<void> pumpFlow(
   bool dark = false,
   String? token = 'tok-test',
   Future<void> Function(GuestDraft draft)? onGuestConfirm,
+  Set<String>? bookableSlugs,
 }) async {
   // Desktop height: the loading skeleton and tall steps need more
   // than the 600px default viewport.
@@ -69,12 +77,17 @@ Future<void> pumpFlow(
         api: testApi(fake, token: token),
         initialCategoryId: initialCategoryId,
         onGuestConfirm: onGuestConfirm,
+        bookableSlugs: bookableSlugs,
       ),
       dark: dark,
     ),
   );
   await tester.pumpAndSettle();
 }
+
+/// Full-catalog override for tests covering states the launch set
+/// cannot reach (e.g. problem-less categories).
+const _allLive = {'water-purifier-repair', 'ac-repair', 'plumbing'};
 
 Future<void> next(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('customer_booking_next')));
@@ -137,9 +150,11 @@ void main() {
   group('BookingFlow step 0 categories', () {
     testWidgets('featured grid plus other dropdown', (tester) async {
       await pumpFlow(tester, flowHttp());
-      expect(find.text('AC Repair'), findsOneWidget);
-      expect(find.byKey(const Key('customer_booking_category_ac-repair')),
+      expect(find.text('Water purifier repair'), findsOneWidget);
+      expect(find.byKey(const Key('customer_booking_category_water-purifier-repair')),
           findsOneWidget);
+      // Featured but not live: dimmed with a soon suffix.
+      expect(find.text('AC Repair · soon'), findsOneWidget);
       // Non-featured lives only in the dropdown.
       expect(find.byKey(const Key('customer_booking_category_other')),
           findsOneWidget);
@@ -167,10 +182,10 @@ void main() {
     });
 
     testWidgets('initialCategoryId preselects', (tester) async {
-      await pumpFlow(tester, flowHttp(), initialCategoryId: 'c-ac');
+      await pumpFlow(tester, flowHttp(), initialCategoryId: 'c-wp');
       expect(
         find.descendant(
-          of: find.byKey(const Key('customer_booking_category_ac-repair')),
+          of: find.byKey(const Key('customer_booking_category_water-purifier-repair')),
           matching: find.byIcon(Icons.check_circle_rounded),
         ),
         findsOneWidget,
@@ -197,7 +212,7 @@ void main() {
     Future<void> toProblems(WidgetTester tester, FakeHttp fake) async {
       await pumpFlow(tester, fake);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -232,7 +247,7 @@ void main() {
     });
 
     testWidgets('category without problems shows no choices', (tester) async {
-      await pumpFlow(tester, flowHttp());
+      await pumpFlow(tester, flowHttp(), bookableSlugs: _allLive);
       await tester.tap(
         find.byKey(const Key('customer_booking_category_other')),
       );
@@ -246,10 +261,14 @@ void main() {
   });
 
   group('BookingFlow step 2 review', () {
-    Future<void> toReview(WidgetTester tester, FakeHttp fake) async {
-      await pumpFlow(tester, fake);
+    Future<void> toReview(
+      WidgetTester tester,
+      FakeHttp fake, {
+      Set<String>? bookableSlugs,
+    }) async {
+      await pumpFlow(tester, fake, bookableSlugs: bookableSlugs);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -264,8 +283,8 @@ void main() {
       await toReview(tester, flowHttp());
       expect(find.text('Step 3 of 4 · Review your request'), findsOneWidget);
       expect(find.text('YOUR REQUEST'), findsOneWidget);
-      expect(find.text('AC Repair'), findsWidgets);
-      expect(find.text('Not cooling'), findsOneWidget);
+      expect(find.text('Water purifier repair'), findsWidgets);
+      expect(find.text('No water flow'), findsOneWidget);
       expect(find.text('Home 682001'), findsOneWidget);
       expect(find.textContaining('Morning 09–13'), findsOneWidget);
       expect(find.textContaining(RegExp(r'\d{4}-\d{2}-\d{2}')), findsWidgets);
@@ -295,7 +314,7 @@ void main() {
     testWidgets('switching category after picking shows an empty list',
         (tester) async {
       final fake = flowHttp();
-      await toReview(tester, fake);
+      await toReview(tester, fake, bookableSlugs: _allLive);
       await back(tester);
       await back(tester);
       await tester.tap(
@@ -307,7 +326,7 @@ void main() {
       await next(tester);
       await next(tester); // stale pick satisfies the guard
       expect(find.text('Plumbing'), findsWidgets);
-      expect(find.text('Not cooling'), findsNothing);
+      expect(find.text('No water flow'), findsNothing);
     });
 
     testWidgets('no addresses renders dashes and hides the select',
@@ -324,7 +343,7 @@ void main() {
       await next(tester);
       expect(find.text('Pick a category'), findsOneWidget);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -338,7 +357,7 @@ void main() {
     Future<void> toSchedule(WidgetTester tester, FakeHttp fake) async {
       await pumpFlow(tester, fake);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -412,7 +431,7 @@ void main() {
       await tester.tap(find.text('Go'));
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -425,9 +444,13 @@ void main() {
       expect(find.text('Confirm booking'), findsOneWidget);
       await tester.tap(find.byKey(const Key('customer_booking_next')));
       await tester.pumpAndSettle();
+      expect(find.text('Booking confirmed!'), findsOneWidget);
+      expect(popped, isNull);
+      await tester.tap(find.byKey(const Key('booking_confirmed_done')));
+      await tester.pumpAndSettle();
       expect(popped, isTrue);
       expect(posted!['address_id'], 'a1');
-      expect(posted!['category_id'], 'c-ac');
+      expect(posted!['category_id'], 'c-wp');
       expect(posted!['issue_template_ids'], equals(['p1']));
       expect(
         posted!['service_date'],
@@ -442,7 +465,7 @@ void main() {
       );
       await pumpFlow(tester, fake);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -459,6 +482,29 @@ void main() {
     });
   });
 
+  group('BookingFlow coming soon', () {
+    testWidgets('tapping a soon card shows error and stays', (tester) async {
+      await pumpFlow(tester, flowHttp());
+      await tester.tap(
+        find.byKey(const Key('customer_booking_category_ac-repair')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('AC Repair is coming soon'), findsOneWidget);
+      expect(find.text('Step 1 of 4 · Choose a service'), findsOneWidget);
+    });
+
+    testWidgets('override makes soon cards selectable', (tester) async {
+      await pumpFlow(tester, flowHttp(), bookableSlugs: _allLive);
+      await tester.tap(
+        find.byKey(const Key('customer_booking_category_ac-repair')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('AC Repair is coming soon'), findsNothing);
+      await next(tester);
+      expect(find.text('Step 2 of 4 · Describe the problem'), findsOneWidget);
+    });
+  });
+
   group('BookingFlow stepper', () {
     testWidgets('labels render, past steps check off', (tester) async {
       await pumpFlow(tester, flowHttp());
@@ -467,7 +513,7 @@ void main() {
       }
       expect(find.byIcon(Icons.check_rounded), findsNothing);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -478,9 +524,9 @@ void main() {
   group('BookingFlow dark mode', () {
     testWidgets('cards, day strip, and slots build under dark', (tester) async {
       await pumpFlow(tester, flowHttp(), dark: true);
-      expect(find.text('AC Repair'), findsOneWidget);
+      expect(find.text('Water purifier repair'), findsOneWidget);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -501,7 +547,7 @@ void main() {
   group('InfoLine', () {
     testWidgets('renders label and value', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const InfoLine(label: 'Status', value: 'Open')),
+        themeHarness(const InfoLine(label: 'Status', value: 'Open')),
       );
       expect(find.text('Status'), findsOneWidget);
       expect(find.text('Open'), findsOneWidget);
@@ -516,7 +562,7 @@ void main() {
     }) async {
       await pumpFlow(tester, fake, token: null, onGuestConfirm: onGuestConfirm);
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -556,7 +602,7 @@ void main() {
         isFalse,
       );
       await tester.tap(
-        find.byKey(const Key('customer_booking_category_ac-repair')),
+        find.byKey(const Key('customer_booking_category_water-purifier-repair')),
       );
       await tester.pumpAndSettle();
       await next(tester);
@@ -598,7 +644,7 @@ void main() {
       await tester.tap(find.byKey(const Key('customer_booking_next')));
       await tester.pumpAndSettle();
       expect(draft, isNotNull);
-      expect(draft!.categoryId, 'c-ac');
+      expect(draft!.categoryId, 'c-wp');
       expect(draft!.issueIds, equals(['p1']));
       expect(draft!.slot, 'morning');
       expect(
@@ -684,7 +730,7 @@ void main() {
       final out = await submitGuestDraft(
         testApi(fake, token: 'tok-new'),
         const GuestDraft(
-          categoryId: 'c-ac',
+          categoryId: 'c-wp',
           issueIds: ['p1'],
           serviceDate: '2026-10-22',
           slot: 'evening',
@@ -696,7 +742,7 @@ void main() {
       expect(bodies[0]['line1'], '12 Palm St');
       expect(bodies[0]['pincode'], '682001');
       expect(bodies[1]['address_id'], 'a9');
-      expect(bodies[1]['category_id'], 'c-ac');
+      expect(bodies[1]['category_id'], 'c-wp');
       expect(bodies[1]['slot'], 'evening');
       expect(out['id'], 'b9');
     });

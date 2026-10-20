@@ -6,30 +6,42 @@ import '../../../helpers/test_helpers.dart';
 
 void main() {
   group('AppAccountMenu pill', () {
-    testWidgets('name pill shows in light and dark', (tester) async {
+    testWidgets('name pill shows the name', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppAccountMenu(name: 'Meera Nair', onLogout: () {}),
         ),
       );
       expect(find.byKey(const Key('shell_account_menu')), findsOneWidget);
       expect(find.text('Meera Nair'), findsOneWidget);
+    });
 
+    testWidgets('compact shows avatar only, menu still opens', (tester) async {
+      var out = 0;
       await tester.pumpWidget(
-        shadHarness(
-          AppAccountMenu(name: 'Meera Nair', onLogout: () {}, dark: true),
-          dark: true,
+        themeHarness(
+          AppAccountMenu(
+            name: 'Meera Nair',
+            onLogout: () => out++,
+            compact: true,
+          ),
         ),
       );
+      expect(find.text('Meera Nair'), findsNothing);
+      await tester.tap(find.byKey(const Key('shell_account_name')));
+      await tester.pumpAndSettle();
       expect(find.text('Meera Nair'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('shell_logout')));
+      await tester.pumpAndSettle();
+      expect(out, 1);
     });
   });
 
-  group('AppAccountMenu popover', () {
+  group('AppAccountMenu menu', () {
     testWidgets('opens with subtitle and custom logout label', (tester) async {
       var out = 0;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppAccountMenu(
             name: 'Arjun',
             subtitle: 'Partner owner',
@@ -49,7 +61,7 @@ void main() {
 
     testWidgets('no subtitle row when subtitle is null', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppAccountMenu(name: 'Solo', onLogout: () {}),
         ),
       );

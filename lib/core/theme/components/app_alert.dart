@@ -24,14 +24,14 @@ class AppAlert extends StatelessWidget {
         ? AppColors.danger
         : success
         ? AppColors.successDeep
-        : AppColors.brightOrange;
+        : AppColors.primaryBright;
     final bg = destructive
         ? AppColors.danger.withValues(alpha: dark ? 0.14 : 0.08)
         : success
         ? AppColors.success.withValues(alpha: dark ? 0.14 : 0.09)
         : (dark
               ? AppColors.white.withValues(alpha: 0.06)
-              : AppColors.peachSoft);
+              : AppColors.washSoft);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

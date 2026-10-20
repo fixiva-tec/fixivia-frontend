@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
+import '../../core/catalog.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/components/components.dart';
 import '../../shared/widgets/fx_logo.dart';
 import '../auth/auth_api.dart';
 import '../auth/auth_screen.dart';
+import '../customer/booking_confirmed_dialog.dart';
 import '../customer/booking_flow.dart';
 import '../customer/guest_draft.dart';
 
@@ -143,10 +145,20 @@ class _LandingPageState extends State<LandingPage> {
       widget.api.token = null;
       rethrow;
     }
-    if (mounted) {
-      Navigator.pop(context);
-      widget.onAuthenticated(result);
-    }
+    if (!mounted) return;
+    await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BookingConfirmedDialog(
+        serviceName: _serviceName(draft.categoryId),
+        subtitle:
+            '${draft.serviceDate} · ${draft.slot == 'evening' ? 'Evening' : 'Morning'} · we will notify you on accept.',
+        offerView: false,
+      ),
+    );
+    if (!mounted) return;
+    Navigator.pop(context);
+    widget.onAuthenticated(result);
   }
 
   @override
@@ -173,39 +185,67 @@ class _LandingPageState extends State<LandingPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                AppCard(
-                  gradient: AppColors.primaryGradientDiagonal,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Home services at your doorstep',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          height: 1.25,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                  child: SizedBox(
+                    height: 240,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.asset(
+                          'assets/services/hero.jpg',
+                          fit: BoxFit.cover,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Verified local technicians for repair, plumbing, '
-                        'electrical and more. Book in a minute, pay after '
-                        'the job.',
-                        style: TextStyle(
-                          color: Color(0xE6FFFFFF),
-                          fontSize: 14,
-                          height: 1.45,
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.68),
+                                Colors.black.withValues(alpha: 0.18),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      AppButton(
-                        text: 'Book a service',
-                        testId: 'landing_book',
-                        expands: false,
-                        onPressed: () => _openGuestFlow(),
-                      ),
-                    ],
+                        Positioned(
+                          left: 20,
+                          right: 20,
+                          bottom: 18,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Home services at your doorstep',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Verified local technicians for repair, '
+                                'plumbing, electrical and more.',
+                                style: TextStyle(
+                                  color: Color(0xE6FFFFFF),
+                                  fontSize: 14,
+                                  height: 1.45,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              AppButton(
+                                text: 'Book a service',
+                                testId: 'landing_book',
+                                expands: false,
+                                onPressed: () => _openGuestFlow(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -260,7 +300,7 @@ class _LandingPageState extends State<LandingPage> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.peachSoft,
+                                  color: AppColors.washSoft,
                                   borderRadius: BorderRadius.circular(
                                     AppRadii.pill,
                                   ),
@@ -270,7 +310,7 @@ class _LandingPageState extends State<LandingPage> {
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.deepOrange,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -295,6 +335,7 @@ class _LandingPageState extends State<LandingPage> {
                             name: '${s['name_en'] ?? ''}',
                             detail: _serviceDetail(s),
                             slug: '${s['slug'] ?? ''}',
+                            live: isBookableCategory('${s['slug'] ?? ''}'),
                             onTap: () =>
                                 _openGuestFlow(s['id'] as String?),
                           ),
@@ -352,6 +393,13 @@ class _LandingPageState extends State<LandingPage> {
         );
   }
 
+  String _serviceName(String id) {
+    for (final s in _services) {
+      if (s['id'] == id) return '${s['name_en'] ?? 'Booking'}';
+    }
+    return 'Booking';
+  }
+
   String _serviceDetail(Map<String, dynamic> s) {
     final problems = s['problems'] as List<dynamic>?;
     if (problems == null || problems.isEmpty) return 'Tap to book';
@@ -368,28 +416,34 @@ class _ServiceRow extends StatelessWidget {
     required this.detail,
     required this.slug,
     required this.onTap,
+    this.live = true,
   });
 
   final String name;
   final String detail;
   final String slug;
   final VoidCallback onTap;
+  final bool live;
 
   @override
   Widget build(BuildContext context) {
-    return AppTestId(
-      testId: 'landing_service_$slug',
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          // Opaque: the whole row taps, not just text and icons.
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
+    return Opacity(
+      opacity: live ? 1 : 0.6,
+      child: AppTestId(
+        testId: 'landing_service_$slug',
+        child: MouseRegion(
+          cursor: live
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.basic,
+          child: GestureDetector(
+            // Opaque: the whole row taps, not just text and icons.
+            behavior: HitTestBehavior.opaque,
+            onTap: live ? onTap : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                FxServiceTile(icon: categoryIcon(slug), size: 44),
+                FxServiceImage(slug: slug, size: 56),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -415,15 +469,19 @@ class _ServiceRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 18,
-                  color: AppColors.deepOrange,
-                ),
+                if (live)
+                  const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  )
+                else
+                  const ComingSoonBadge(),
               ],
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -473,7 +531,7 @@ class _HowRow extends StatelessWidget {
           height: 26,
           alignment: Alignment.center,
           decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            color: AppColors.primary,
             shape: BoxShape.circle,
           ),
           child: Text(

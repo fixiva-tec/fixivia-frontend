@@ -14,7 +14,7 @@ enum AppButtonVariant {
 
 enum AppButtonSize { sm, md, lg }
 
-/// In-house button. Pill-shaped per the brand board: orange gradient primary
+/// In-house button. Pill-shaped per the brand board: flat blue primary
 /// CTA with white label and trailing arrow; white pill secondary.
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -174,9 +174,9 @@ class AppButton extends StatelessWidget {
     return switch (variant) {
       AppButtonVariant.primary => AppColors.white,
       AppButtonVariant.secondary =>
-          dark ? AppColors.charcoal : AppColors.white,
+          dark ? AppColors.ink : AppColors.white,
       AppButtonVariant.destructive => AppColors.white,
-      AppButtonVariant.onBrand => AppColors.deepOrange,
+      AppButtonVariant.onBrand => AppColors.primary,
       AppButtonVariant.outline => AppColors.inkOf(context),
       AppButtonVariant.ghost => AppColors.inkOf(context),
     };
@@ -191,13 +191,13 @@ class AppButton extends StatelessWidget {
     switch (variant) {
       case AppButtonVariant.primary:
         return BoxDecoration(
-          gradient: AppColors.primaryGradient,
+          color: AppColors.primary,
           borderRadius: radius,
           boxShadow: hovered ? AppShadows.glow : AppShadows.glowSoft,
         );
       case AppButtonVariant.secondary:
         return BoxDecoration(
-          color: dark ? AppColors.white : AppColors.charcoal,
+          color: dark ? AppColors.white : AppColors.ink,
           borderRadius: radius,
           boxShadow: hovered ? AppShadows.lift : AppShadows.soft,
         );
@@ -216,11 +216,11 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.outline:
         return BoxDecoration(
           color: hovered
-              ? (dark ? AppColors.charcoalSoft : AppColors.peachSoft)
+              ? (dark ? AppColors.charcoalSoft : AppColors.washSoft)
               : (dark ? Colors.transparent : AppColors.white),
           borderRadius: radius,
           border: Border.all(
-            color: hovered ? AppColors.brightOrange : AppColors.lineOf(context),
+            color: hovered ? AppColors.primaryBright : AppColors.lineOf(context),
           ),
         );
       case AppButtonVariant.ghost:
@@ -228,7 +228,7 @@ class AppButton extends StatelessWidget {
           color: hovered
               ? (dark
                     ? AppColors.white.withValues(alpha: 0.08)
-                    : AppColors.charcoal.withValues(alpha: 0.06))
+                    : AppColors.ink.withValues(alpha: 0.06))
               : Colors.transparent,
           borderRadius: radius,
         );

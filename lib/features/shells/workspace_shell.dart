@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../api/client.dart';
 import '../../core/booking_rules.dart';
+import '../../core/catalog.dart';
 import '../../core/session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/components/components.dart';
@@ -54,35 +55,46 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               title: 'Your bookings',
               onOpen: (id) => _openBooking(id),
             ),
+            testId: 'nav_bookings',
           ),
           _Tab(
             'Addresses',
             Icons.place_rounded,
             () => _AddressesPage(api: widget.api),
+            testId: 'nav_addresses',
           ),
         ];
       case UserRole.servicePartner:
         return [
-          _Tab('Inbox', Icons.inbox_rounded, () => _OffersPage(api: widget.api)),
+          _Tab(
+            'Inbox',
+            Icons.inbox_rounded,
+            () => _OffersPage(api: widget.api),
+            testId: 'nav_inbox',
+          ),
           _Tab(
             'Schedule',
             Icons.calendar_month_rounded,
             () => SchedulePage(api: widget.api),
+            testId: 'nav_schedule',
           ),
           _Tab(
             'Earnings',
             Icons.payments_rounded,
             () => EarningsPage(api: widget.api),
+            testId: 'nav_earnings',
           ),
           _Tab(
             'Profile',
             Icons.person_rounded,
             () => _SpProfilePage(api: widget.api),
+            testId: 'nav_profile',
           ),
           _Tab(
             'Reports',
             Icons.insights_rounded,
             () => AnalyticsPage(api: widget.api, testId: 'sp_reports'),
+            testId: 'nav_reports',
           ),
         ];
       case UserRole.partnerOwner:
@@ -98,6 +110,7 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               title: 'Open requests',
               onOpen: _openBooking,
             ),
+            testId: 'nav_open',
           ),
           _Tab(
             'Upcoming',
@@ -108,13 +121,25 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
               title: 'Bookings',
               onOpen: _openBooking,
             ),
+            testId: 'nav_upcoming',
           ),
-          _Tab('Roster', Icons.groups_rounded, () => _RosterPage(api: widget.api)),
-          _Tab('Pricing', Icons.sell_rounded, () => PricingPage(api: widget.api)),
+          _Tab(
+            'Roster',
+            Icons.groups_rounded,
+            () => _RosterPage(api: widget.api),
+            testId: 'nav_roster',
+          ),
+          _Tab(
+            'Pricing',
+            Icons.sell_rounded,
+            () => PricingPage(api: widget.api),
+            testId: 'nav_pricing',
+          ),
           _Tab(
             'Analytics',
             Icons.insights_rounded,
             () => AnalyticsPage(api: widget.api, testId: 'partner_analytics'),
+            testId: 'nav_analytics',
           ),
         ];
       case UserRole.masterAdmin:
@@ -123,26 +148,31 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
             'Partners',
             Icons.apartment_rounded,
             () => PartnersPage(api: widget.api),
+            testId: 'nav_partners',
           ),
           _Tab(
             'Categories',
             Icons.category_rounded,
             () => CategoriesPage(api: widget.api),
+            testId: 'nav_categories',
           ),
           _Tab(
             'Admins',
             Icons.person_add_rounded,
             () => AdminRequestsPage(api: widget.api),
+            testId: 'nav_admins',
           ),
           _Tab(
             'Invoices',
             Icons.receipt_long_rounded,
             () => InvoicesPage(api: widget.api),
+            testId: 'nav_invoices',
           ),
           _Tab(
             'Analytics',
             Icons.insights_rounded,
             () => AnalyticsPage(api: widget.api, testId: 'master_analytics'),
+            testId: 'nav_analytics',
           ),
         ];
     }
@@ -162,17 +192,22 @@ class _WorkspaceShellState extends State<WorkspaceShell> {
   Widget build(BuildContext context) {
     final tabs = _tabs;
     final body = tabs[_index].builder();
-    final compact = appIsCompact(context);
     return AppWorkspaceFrame(
       brand: const FxLogo(height: 28),
-      darkBrand: const FxLogo(white: true, height: 30),
+      mark: const FxMark(size: 26),
       roleLabel: _roleLabel(widget.user.role),
       account: AppAccountMenu(
         name: widget.user.fullName,
         subtitle: _roleLabel(widget.user.role),
         logoutLabel: AppLocalizations.of(context).logout,
-        dark: !compact,
         onLogout: widget.onLogout ?? () {},
+      ),
+      railAccount: AppAccountMenu(
+        name: widget.user.fullName,
+        subtitle: _roleLabel(widget.user.role),
+        logoutLabel: AppLocalizations.of(context).logout,
+        onLogout: widget.onLogout ?? () {},
+        compact: true,
       ),
       destinations: [
         for (final t in tabs)
@@ -214,6 +249,25 @@ class _CustomerHome extends StatelessWidget {
   final SessionUser user;
   final VoidCallback onOpenBookings;
 
+  void _openFlow(BuildContext context, {String? initialCategoryId}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BookingFlow(
+          api: api,
+          initialCategoryId: initialCategoryId,
+          onConfirmed: (id) => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  _BookingDetail(api: api, id: id, role: user.role),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -231,7 +285,7 @@ class _CustomerHome extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AppCard(
-            gradient: AppColors.primaryGradientDiagonal,
+            tint: AppColors.primary,
             padding: const EdgeInsets.all(26),
             child: Stack(
               children: [
@@ -274,14 +328,7 @@ class _CustomerHome extends StatelessWidget {
                       expands: false,
                       size: AppButtonSize.lg,
                       showArrow: true,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BookingFlow(api: api),
-                          ),
-                        );
-                      },
+                      onPressed: () => _openFlow(context),
                     ),
                   ],
                 ),
@@ -293,10 +340,7 @@ class _CustomerHome extends StatelessWidget {
             title: 'Popular services',
             actionLabel: 'Book',
             actionTestId: 'customer_home_book_all',
-            onAction: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => BookingFlow(api: api)),
-            ),
+            onAction: () => _openFlow(context),
           ),
           const SizedBox(height: 12),
           FetchBody(
@@ -314,28 +358,27 @@ class _CustomerHome extends StatelessWidget {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final cols = constraints.maxWidth > 640 ? 3 : 2;
+                  // Narrow cells stack the name over the badge: go taller.
+                  final cellW =
+                      (constraints.maxWidth - (cols - 1) * 10) / cols;
                   return GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: cols,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 1.5,
+                    childAspectRatio: cellW < 200 ? 1.05 : 1.5,
                     children: [
                       for (final c in show)
                         _HomeServiceCard(
                           name: field(c, 'name_en'),
                           slug: field(c, 'slug', ''),
+                          live: isBookableCategory(field(c, 'slug', '')),
                           testId:
                               'customer_home_service_${field(c, 'slug', field(c, 'id'))}',
-                          onTap: () => Navigator.push(
+                          onTap: () => _openFlow(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => BookingFlow(
-                                api: api,
-                                initialCategoryId: field(c, 'id'),
-                              ),
-                            ),
+                            initialCategoryId: field(c, 'id'),
                           ),
                         ),
                     ],
@@ -368,34 +411,40 @@ class _CustomerHome extends StatelessWidget {
                       testId: 'customer_home_book_empty',
                       expands: false,
                       showArrow: true,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => BookingFlow(api: api)),
-                      ),
+                      onPressed: () => _openFlow(context),
                     ),
                   ),
                 );
               }
-              return Column(
-                children: [
-                  for (final b in items) ...[
-                    BookingRowCard(
-                      booking: b,
-                      testId: 'customer_home_booking_${b['id']}',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => _BookingDetail(
-                            api: api,
-                            id: '${b['id']}',
-                            role: user.role,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
+              return AppDataTable(
+                columns: const [
+                  AppTableColumn('Service', flex: 2),
+                  AppTableColumn('Date'),
+                  AppTableColumn('Amount'),
+                  AppTableColumn('Status'),
                 ],
+                rows: [
+                  for (final b in items)
+                    [
+                      tcell(field(b, 'category_name', 'Booking'), bold: true),
+                      tcell(field(b, 'service_date')),
+                      tmoney(money(b['quoted_amount'])),
+                      StatusBadge(field(b, 'status')),
+                    ],
+                ],
+                rowTestIds: [
+                  for (final b in items) 'customer_home_booking_${b['id']}',
+                ],
+                onRowTap: (i) => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _BookingDetail(
+                      api: api,
+                      id: '${items[i]['id']}',
+                      role: user.role,
+                    ),
+                  ),
+                ),
               );
             },
           ),
@@ -411,41 +460,57 @@ class _HomeServiceCard extends StatelessWidget {
     required this.slug,
     required this.testId,
     required this.onTap,
+    this.live = true,
   });
 
   final String name;
   final String slug;
   final String testId;
   final VoidCallback onTap;
+  final bool live;
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      testId: testId,
-      onTap: onTap,
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          FxServiceTile(icon: categoryIcon(slug), size: 44),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                height: 1.25,
+    return Opacity(
+      opacity: live ? 1 : 0.6,
+      child: AppCard(
+        testId: testId,
+        onTap: live ? onTap : null,
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            FxServiceImage(slug: slug, size: 52),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (!live) ...[
+                    const SizedBox(height: 6),
+                    const ComingSoonBadge(),
+                  ],
+                ],
               ),
             ),
-          ),
-          const Icon(
-            Icons.arrow_forward_rounded,
-            size: 17,
-            color: AppColors.brightOrange,
-          ),
-        ],
+            if (live)
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 17,
+                color: AppColors.primaryBright,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -507,44 +572,66 @@ class _BookingDetailState extends State<_BookingDetail> {
           final startEarly = serviceDay != null &&
               DateTime(serviceDay.year, serviceDay.month, serviceDay.day)
                   .isAfter(DateTime(now.year, now.month, now.day));
+          final banner = serviceImageFor('${b['category_slug'] ?? ''}');
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
             children: [
-              AppCard(
-                gradient: AppColors.primaryGradientDiagonal,
-                child: Row(
-                  children: [
-                    FxServiceTile(
-                      icon: categoryIcon('${b['category_slug'] ?? ''}'),
-                      size: 54,
-                      onBrand: true,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${b['category_name'] ?? 'Booking'}',
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                child: SizedBox(
+                  height: 168,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (banner != null)
+                        Image.asset(banner, fit: BoxFit.cover)
+                      else
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${b['service_date']} · ${pretty('${b['slot'] ?? ''}')} · ${b['pincode']}',
-                            style: const TextStyle(
-                              color: Color(0xE6FFFFFF),
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w500,
-                            ),
+                        ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.05),
+                              Colors.black.withValues(alpha: 0.62),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 14,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${b['category_name'] ?? 'Booking'}',
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${b['service_date']} · ${pretty('${b['slot'] ?? ''}')} · ${b['pincode']}',
+                              style: const TextStyle(
+                                color: Color(0xE6FFFFFF),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -940,8 +1027,7 @@ class _ProgressSteps extends StatelessWidget {
                 height: 3,
                 margin: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
-                  gradient: i <= stage ? AppColors.primaryGradient : null,
-                  color: i <= stage ? null : AppColors.border,
+                  color: i <= stage ? AppColors.primary : AppColors.border,
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -954,8 +1040,7 @@ class _ProgressSteps extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  gradient: i <= stage ? AppColors.primaryGradient : null,
-                  color: i <= stage ? null : AppColors.lightGray,
+                  color: i <= stage ? AppColors.primary : AppColors.canvas,
                   shape: BoxShape.circle,
                   border: i <= stage
                       ? null
@@ -978,7 +1063,7 @@ class _ProgressSteps extends StatelessWidget {
                   fontSize: 10.5,
                   fontWeight: i == stage ? FontWeight.w700 : FontWeight.w500,
                   color: i == stage
-                      ? AppColors.deepOrange
+                      ? AppColors.primary
                       : AppColors.muted,
                 ),
               ),
@@ -1004,35 +1089,59 @@ class _OffersPage extends StatelessWidget {
         future: api.get('/v1/offers'),
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No open offers',
-                hint: 'New jobs in your pincodes will land here.',
-                icon: Icons.inbox_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final o in items) ...[
-                _OfferCard(
-                  offer: o,
-                  onOpen: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => _BookingDetail(
-                        api: api,
-                        id: o['id'] as String,
-                        // Inbox is a service-partner-only tab.
-                        role: UserRole.servicePartner,
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Service', flex: 2),
+              AppTableColumn('Pincode'),
+              AppTableColumn('Date'),
+              AppTableColumn('Load'),
+              AppTableColumn('Open', flex: 1),
+            ],
+            rows: [
+              for (final o in items)
+                [
+                  Row(
+                    children: [
+                      FxServiceImage(
+                        slug: '${o['category_slug'] ?? ''}',
+                        size: 36,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: tcell(
+                          '${o['category_name']}',
+                          bold: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                  tcell('${o['pincode']}'),
+                  tcell('${o['service_date']}'),
+                  _LoadDots(
+                    load: (o['slot_load'] as num?)?.toInt() ?? 0,
+                    cap: (o['slot_cap'] as num?)?.toInt() ?? 5,
+                  ),
+                  AppButton(
+                    text: 'Open',
+                    testId: 'sp_offer_open_${o['id']}',
+                    size: AppButtonSize.sm,
+                    expands: false,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => _BookingDetail(
+                          api: api,
+                          id: o['id'] as String,
+                          // Inbox is a service-partner-only tab.
+                          role: UserRole.servicePartner,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                ],
             ],
+            emptyTitle: 'No open offers',
+            emptyIcon: Icons.inbox_outlined,
           );
         },
       ),
@@ -1040,66 +1149,37 @@ class _OffersPage extends StatelessWidget {
   }
 }
 
-class _OfferCard extends StatelessWidget {
-  const _OfferCard({required this.offer, required this.onOpen});
+/// Compact slot-load meter for the offers table.
+class _LoadDots extends StatelessWidget {
+  const _LoadDots({required this.load, required this.cap});
 
-  final Map<String, dynamic> offer;
-  final VoidCallback onOpen;
+  final int load;
+  final int cap;
 
   @override
   Widget build(BuildContext context) {
-    final load = (offer['slot_load'] as num?)?.toInt() ?? 0;
-    final cap = (offer['slot_cap'] as num?)?.toInt() ?? 5;
     final ratio = cap <= 0 ? 0.0 : (load / cap).clamp(0.0, 1.0);
-    return AppCard(
-      leading: FxServiceTile(
-        icon: categoryIcon('${offer['category_slug'] ?? ''}'),
-      ),
-      title: '${offer['category_name']} · ${offer['pincode']}',
-      description: '${offer['service_date']} · ${offer['slot']}',
-      trailing: StatusBadge('${offer['status'] ?? 'open'}'),
-      footer: AppButton(
-        text: 'Open offer',
-        testId: 'sp_offer_open_${offer['id']}',
-        expands: true,
-        showArrow: true,
-        onPressed: onOpen,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Slot load $load of $cap',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              Text(
-                '${(ratio * 100).round()}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.deepOrange,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 8,
-              backgroundColor: AppColors.peachSoft,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.deepOrange,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$load/$cap',
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 6,
+            backgroundColor: AppColors.washSoft,
+            valueColor: const AlwaysStoppedAnimation<Color>(
+              AppColors.primary,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1180,29 +1260,24 @@ class _AddressesPageState extends State<_AddressesPage> {
             future: widget.api.get('/v1/addresses'),
             builder: (data) {
               final items = asMapList(data);
-              if (items.isEmpty) {
-                return const AppCard(
-                  child: EmptyState(
-                    title: 'No saved addresses',
-                    hint: 'Add your home above to start booking.',
-                    icon: Icons.home_outlined,
-                  ),
-                );
-              }
-              return Column(
-                children: [
-                  for (final a in items) ...[
-                    AppCard(
-                      leading: const FxServiceTile(icon: Icons.home_rounded),
-                      title: '${a['line1']}',
-                      description: '${a['pincode']}',
-                      trailing: a['is_default'] == true
-                          ? const StatusBadge('default')
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+              return AppDataTable(
+                columns: const [
+                  AppTableColumn('Address', flex: 2),
+                  AppTableColumn('Pincode'),
+                  AppTableColumn('Default'),
                 ],
+                rows: [
+                  for (final a in items)
+                    [
+                      tcell('${a['line1']}', bold: true),
+                      tcell('${a['pincode']}'),
+                      a['is_default'] == true
+                          ? const StatusBadge('default')
+                          : tcell('—', color: AppColors.subOf(context)),
+                    ],
+                ],
+                emptyTitle: 'No saved addresses',
+                emptyIcon: Icons.home_outlined,
               );
             },
           ),
@@ -1226,25 +1301,30 @@ class _RosterPage extends StatelessWidget {
         future: api.get('/v1/sp/roster'),
         builder: (data) {
           final items = asMapList(data);
-          if (items.isEmpty) {
-            return const AppCard(
-              child: EmptyState(
-                title: 'No technicians yet',
-                hint: 'Approved service partners will appear here.',
-                icon: Icons.groups_outlined,
-              ),
-            );
-          }
-          return Column(
-            children: [
-              for (final s in items) ...[
-                AppCard(
-                  leading: FxAvatar(name: field(s, 'full_name', '?')),
-                  title: field(s, 'full_name'),
-                  description: field(s, 'mobile', field(s, 'email')),
-                  trailing: StatusBadge(field(s, 'kyc_status')),
-                  footer: Wrap(
+          return AppDataTable(
+            columns: const [
+              AppTableColumn('Technician', flex: 2),
+              AppTableColumn('Contact', flex: 2),
+              AppTableColumn('KYC'),
+              AppTableColumn('Manage', flex: 2),
+            ],
+            rows: [
+              for (final s in items)
+                [
+                  Row(
+                    children: [
+                      FxAvatar(name: field(s, 'full_name', '?')),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: tcell(field(s, 'full_name'), bold: true),
+                      ),
+                    ],
+                  ),
+                  tcell(field(s, 'mobile', field(s, 'email'))),
+                  StatusBadge(field(s, 'kyc_status')),
+                  Wrap(
                     spacing: 8,
+                    runSpacing: 6,
                     children: [
                       AppButton(
                         text: 'Approve',
@@ -1268,10 +1348,10 @@ class _RosterPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
+                ],
             ],
+            emptyTitle: 'No technicians yet',
+            emptyIcon: Icons.groups_outlined,
           );
         },
       ),
@@ -1331,16 +1411,16 @@ class _SpProfilePageState extends State<_SpProfilePage> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.peachSoft,
+                            color: AppColors.washSoft,
                             borderRadius: BorderRadius.circular(AppRadii.pill),
-                            border: Border.all(color: AppColors.peach),
+                            border: Border.all(color: AppColors.wash),
                           ),
                           child: Text(
                             pin,
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.ember,
+                              color: AppColors.primaryDeep,
                             ),
                           ),
                         ),

@@ -52,7 +52,7 @@ void main() {
     testWidgets('full row with technician and tap', (tester) async {
       var tapped = false;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           BookingRowCard(
             booking: booking(),
             testId: 'row-1',
@@ -73,7 +73,7 @@ void main() {
 
     testWidgets('no technician, no tap, bad date', (tester) async {
       final b = booking(tech: false)..['service_date'] = 'junk';
-      await tester.pumpWidget(shadHarness(BookingRowCard(booking: b)));
+      await tester.pumpWidget(themeHarness(BookingRowCard(booking: b)));
       expect(find.text('Ravi'), findsNothing);
       expect(find.text('—'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
@@ -84,7 +84,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       final fake = FakeHttp();
       await tester.pumpWidget(
-        shadHarness(PartnersPage(api: _api({'/v1/partners': []}, fake))),
+        themeHarness(PartnersPage(api: _api({'/v1/partners': []}, fake))),
       );
       await tester.pumpAndSettle();
       expect(find.text('No partners yet'), findsOneWidget);
@@ -118,10 +118,10 @@ void main() {
           },
         ],
       }, fake);
-      await tester.pumpWidget(shadHarness(PartnersPage(api: api)));
+      await tester.pumpWidget(themeHarness(PartnersPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('FixCo'), findsOneWidget);
-      expect(find.text('682001, 682002'), findsOneWidget);
+      expect(find.text('682001'), findsOneWidget);
       expect(find.text('NewCo'), findsOneWidget);
       // Only the non-approved partner gets action buttons.
       expect(
@@ -165,7 +165,7 @@ void main() {
           },
         ],
       }, fake);
-      await tester.pumpWidget(shadHarness(PartnersPage(api: api)));
+      await tester.pumpWidget(themeHarness(PartnersPage(api: api)));
       await tester.pumpAndSettle();
       await tester.ensureVisible(
         find.byKey(const Key('master_partner_reject_p9')),
@@ -185,7 +185,7 @@ void main() {
 
     testWidgets('load failure shows the error and retry', (tester) async {
       await tester.pumpWidget(
-        shadHarness(PartnersPage(api: _FailingGetApi())),
+        themeHarness(PartnersPage(api: _FailingGetApi())),
       );
       await tester.pumpAndSettle();
       expect(find.text('Could not load this page'), findsOneWidget);
@@ -200,7 +200,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       final fake = FakeHttp();
       await tester.pumpWidget(
-        shadHarness(CategoriesPage(api: _api({'/v1/categories': []}, fake))),
+        themeHarness(CategoriesPage(api: _api({'/v1/categories': []}, fake))),
       );
       await tester.pumpAndSettle();
       expect(find.text('No categories yet'), findsOneWidget);
@@ -227,7 +227,7 @@ void main() {
           {'name_en': 'Paint', 'slug': 'paint'},
         ],
       }, fake);
-      await tester.pumpWidget(shadHarness(CategoriesPage(api: api)));
+      await tester.pumpWidget(themeHarness(CategoriesPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Plumbing'), findsOneWidget);
       expect(find.text('Featured #1'), findsOneWidget);
@@ -243,7 +243,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       final fake = FakeHttp();
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AdminRequestsPage(
             api: _api({'/v1/partner-admin-requests': []}, fake),
           ),
@@ -272,7 +272,7 @@ void main() {
           },
         ],
       }, fake);
-      await tester.pumpWidget(shadHarness(AdminRequestsPage(api: api)));
+      await tester.pumpWidget(themeHarness(AdminRequestsPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Anu'), findsOneWidget);
       expect(find.text('Babu'), findsOneWidget);
@@ -302,7 +302,7 @@ void main() {
     testWidgets('empty and filled', (tester) async {
       final fake = FakeHttp();
       final api = _api({'/v1/invoices': []}, fake);
-      await tester.pumpWidget(shadHarness(InvoicesPage(api: api)));
+      await tester.pumpWidget(themeHarness(InvoicesPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('No invoices yet'), findsOneWidget);
 
@@ -315,7 +315,7 @@ void main() {
           'partner_id': 'p1',
         },
       ]);
-      await tester.pumpWidget(shadHarness(InvoicesPage(api: api)));
+      await tester.pumpWidget(themeHarness(InvoicesPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('₹1500'), findsOneWidget);
       expect(find.text('2026-10-01 → 2026-10-31'), findsOneWidget);
@@ -351,10 +351,10 @@ void main() {
       final fake = FakeHttp();
       final api = _api({'/v1/analytics': payload()}, fake);
       await tester.pumpWidget(
-        shadHarness(AnalyticsPage(api: api, testId: 'm_analytics')),
+        themeHarness(AnalyticsPage(api: api, testId: 'm_analytics')),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Created'), findsOneWidget);
+      expect(find.text('Created'), findsNWidgets(2));
       expect(find.text('₹9000'), findsOneWidget);
       expect(find.text('12 min'), findsOneWidget);
       expect(find.text('By partner'), findsOneWidget);
@@ -372,7 +372,7 @@ void main() {
         fake,
       );
       await tester.pumpWidget(
-        shadHarness(AnalyticsPage(api: api, testId: 'm_analytics')),
+        themeHarness(AnalyticsPage(api: api, testId: 'm_analytics')),
       );
       await tester.pumpAndSettle();
       expect(find.text('Median accept'), findsOneWidget);
@@ -384,7 +384,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       final fake = FakeHttp();
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           BookingsListPage(
             api: _api({'/v1/bookings': []}, fake),
             testId: 'mine',
@@ -411,7 +411,7 @@ void main() {
       }, fake);
       String? opened;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           BookingsListPage(
             api: api,
             testId: 'sp_offers',
@@ -436,7 +436,7 @@ void main() {
         ],
       }, fake);
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           BookingsListPage(api: api, testId: 'mine', title: 'Mine'),
         ),
       );
@@ -449,7 +449,7 @@ void main() {
     testWidgets('empty state', (tester) async {
       final fake = FakeHttp();
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           PricingPage(
             api: _api({
               '/v1/partner/pricing': [],
@@ -473,7 +473,7 @@ void main() {
           {'id': 'c1', 'name_en': 'Plumbing', 'slug': 'plumbing'},
         ],
       }, fake);
-      await tester.pumpWidget(shadHarness(PricingPage(api: api)));
+      await tester.pumpWidget(themeHarness(PricingPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Plumbing'), findsOneWidget);
       expect(find.text('₹499'), findsOneWidget);
@@ -493,11 +493,15 @@ void main() {
           'evening': [],
         },
       }, fake);
-      await tester.pumpWidget(shadHarness(SchedulePage(api: api)));
+      await tester.pumpWidget(themeHarness(SchedulePage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Date 2026-10-21'), findsOneWidget);
-      expect(find.text('No jobs · 09:00 – 13:00'), findsOneWidget);
-      expect(find.text('No jobs · 13:00 – 18:00'), findsOneWidget);
+      expect(find.text('Morning · 09:00 – 13:00'), findsOneWidget);
+      expect(find.text('Evening · 13:00 – 18:00'), findsOneWidget);
+      expect(
+        find.text('Nothing scheduled — enjoy the breather.'),
+        findsNWidgets(2),
+      );
     });
 
     testWidgets('route order with stops and dividers', (tester) async {
@@ -516,13 +520,13 @@ void main() {
           'evening': [],
         },
       }, fake);
-      await tester.pumpWidget(shadHarness(SchedulePage(api: api)));
+      await tester.pumpWidget(themeHarness(SchedulePage(api: api)));
       await tester.pumpAndSettle();
-      expect(find.text('2 job(s) · 09:00 – 13:00'), findsOneWidget);
+      expect(find.text('Morning · 09:00 – 13:00'), findsOneWidget);
       expect(find.text('AC Repair'), findsOneWidget);
       expect(find.text('1'), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
-      expect(find.byType(Divider), findsOneWidget);
+      expect(find.byType(Divider), findsNWidgets(3));
     });
   });
 
@@ -532,7 +536,7 @@ void main() {
       final api = _api({
         '/v1/sp/earnings': {'pending': 300, 'paid': 1200, 'jobs': 4},
       }, fake);
-      await tester.pumpWidget(shadHarness(EarningsPage(api: api)));
+      await tester.pumpWidget(themeHarness(EarningsPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Pending'), findsOneWidget);
       expect(find.text('₹300'), findsOneWidget);
@@ -540,7 +544,7 @@ void main() {
       expect(find.text('4'), findsOneWidget);
 
       compactSize(tester);
-      await tester.pumpWidget(shadHarness(EarningsPage(api: api)));
+      await tester.pumpWidget(themeHarness(EarningsPage(api: api)));
       await tester.pumpAndSettle();
       expect(find.text('Pending'), findsOneWidget);
     });

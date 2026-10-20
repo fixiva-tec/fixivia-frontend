@@ -10,7 +10,7 @@ void main() {
   group('AppInputField content', () {
     testWidgets('label, placeholder, adornments render', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppInputField(
             testId: 'f-1',
             label: 'Mobile',
@@ -31,7 +31,7 @@ void main() {
       addTearDown(controller.dispose);
       var seen = '';
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppInputField(
             testId: 'f-2',
             controller: controller,
@@ -48,7 +48,7 @@ void main() {
     testWidgets('obscure, disabled, length, and formatters pass through',
         (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppInputField(
             testId: 'f-3',
             obscureText: true,
@@ -71,7 +71,7 @@ void main() {
   group('AppInputField focus ring', () {
     testWidgets('focus swaps the border color and width', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppInputField(testId: 'f-4', label: 'Name'),
         ),
       );
@@ -93,7 +93,7 @@ void main() {
       await tester.pump();
       expect(
         (deco().border! as Border).top.color,
-        AppColors.brightOrange,
+        AppColors.primaryBright,
       );
       expect((deco().border! as Border).top.width, 1.6);
     });
@@ -102,7 +102,7 @@ void main() {
   group('AppInputField dark mode', () {
     testWidgets('builds under dark', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const AppInputField(testId: 'f-5', label: 'Name'),
           dark: true,
         ),

@@ -113,7 +113,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final compact = appIsCompact(context);
     if (compact) return _compact();
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
+      backgroundColor: AppColors.canvas,
       body: Row(
         children: [
           const Expanded(flex: 5, child: _BrandPane()),
@@ -140,7 +140,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _compact() {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppColors.lightGray,
+      backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -148,17 +148,7 @@ class _AuthScreenState extends State<AuthScreen> {
             Container(
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 56),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.charcoalDeep,
-                    AppColors.charcoal,
-                    AppColors.ember,
-                    AppColors.deepOrange,
-                  ],
-                  stops: [0.0, 0.42, 0.78, 1.0],
-                ),
+                color: AppColors.navy,
                 borderRadius: BorderRadius.vertical(
                   bottom: Radius.circular(32),
                 ),
@@ -243,17 +233,7 @@ class _BrandPane extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return DecoratedBox(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.charcoalDeep,
-            AppColors.charcoal,
-            AppColors.ember,
-            AppColors.deepOrange,
-          ],
-          stops: [0.0, 0.42, 0.78, 1.0],
-        ),
+        color: AppColors.navy,
       ),
       child: Stack(
         children: [
@@ -386,7 +366,7 @@ class _BrandPoint extends StatelessWidget {
             child: const Icon(
               Icons.check_rounded,
               size: 15,
-              color: AppColors.deepOrange,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -549,7 +529,7 @@ class _AuthFormCard extends StatelessWidget {
                 '+91',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.charcoal,
+                  color: AppColors.ink,
                 ),
               ),
             ),
@@ -604,7 +584,7 @@ class _ModeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.lightGray,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(AppRadii.pill),
       ),
       child: Padding(
@@ -660,8 +640,7 @@ class _Segment extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(vertical: 11),
             decoration: BoxDecoration(
-              gradient: selected ? AppColors.primaryGradient : null,
-              color: selected ? null : Colors.transparent,
+              color: selected ? AppColors.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(AppRadii.pill),
               boxShadow: selected ? AppShadows.glowSoft : const [],
             ),

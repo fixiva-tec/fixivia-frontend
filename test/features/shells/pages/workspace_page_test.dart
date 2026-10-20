@@ -103,13 +103,13 @@ void main() {
   group('EmptyHint', () {
     testWidgets('default and custom icons', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const EmptyHint('Nothing here')),
+        themeHarness(const EmptyHint('Nothing here')),
       );
       expect(find.text('Nothing here'), findsOneWidget);
       expect(find.byIcon(Icons.inbox_outlined), findsOneWidget);
 
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const EmptyHint('Empty', icon: Icons.star),
         ),
       );
@@ -119,7 +119,7 @@ void main() {
 
   group('StatusBadge tones', () {
     Future<Color> dotOf(WidgetTester tester, String label) async {
-      await tester.pumpWidget(shadHarness(StatusBadge(label)));
+      await tester.pumpWidget(themeHarness(StatusBadge(label)));
       final dots = tester.widgetList<Container>(
         find.descendant(
           of: find.byType(StatusBadge),
@@ -139,8 +139,8 @@ void main() {
       expect(await dotOf(tester, 'paid'), AppColors.successDeep);
       expect(await dotOf(tester, 'cancelled'), AppColors.danger);
       expect(await dotOf(tester, 'dropped'), AppColors.danger);
-      expect(await dotOf(tester, 'open'), AppColors.deepOrange);
-      expect(await dotOf(tester, 'in_progress'), AppColors.deepOrange);
+      expect(await dotOf(tester, 'open'), AppColors.primary);
+      expect(await dotOf(tester, 'in_progress'), AppColors.primary);
       expect(await dotOf(tester, 'featured #1'), AppColors.warning);
       expect(
         await dotOf(tester, 'something-else'),
@@ -149,10 +149,10 @@ void main() {
     });
 
     testWidgets('label is prettified, dark build works', (tester) async {
-      await tester.pumpWidget(shadHarness(const StatusBadge('in_progress')));
+      await tester.pumpWidget(themeHarness(const StatusBadge('in_progress')));
       expect(find.text('In progress'), findsOneWidget);
       await tester.pumpWidget(
-        shadHarness(const StatusBadge('open'), dark: true),
+        themeHarness(const StatusBadge('open'), dark: true),
       );
       expect(find.text('Open'), findsOneWidget);
     });
@@ -161,7 +161,7 @@ void main() {
   group('MetricCard', () {
     testWidgets('label, value, icon, and tint branches', (tester) async {
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           const Column(
             children: [
               MetricCard(label: 'Jobs', value: '12'),
@@ -184,7 +184,7 @@ void main() {
   group('InfoRow', () {
     testWidgets('renders label and value', (tester) async {
       await tester.pumpWidget(
-        shadHarness(const InfoRow('Quote', '₹500')),
+        themeHarness(const InfoRow('Quote', '₹500')),
       );
       expect(find.text('Quote'), findsOneWidget);
       expect(find.text('₹500'), findsOneWidget);
@@ -245,7 +245,7 @@ void main() {
         (tester) async {
       Future<Color> labelOf(bool dark) async {
         await tester.pumpWidget(
-          shadHarness(const StatusBadge('open'), dark: dark),
+          themeHarness(const StatusBadge('open'), dark: dark),
         );
         await tester.pumpAndSettle();
         final text = tester.widget<Text>(find.text('Open'));

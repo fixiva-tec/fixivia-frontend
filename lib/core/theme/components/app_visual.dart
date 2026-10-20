@@ -53,7 +53,83 @@ IconData categoryIcon(String? slug) {
   return Icons.handyman_rounded;
 }
 
-/// Rounded service glyph tile: peach wash + orange icon, or gradient when
+/// Asset photo for a service-category slug, or null when the catalog
+/// grows a category we have no art for yet.
+String? serviceImageFor(String? slug) {
+  const known = {
+    'water-purifier-repair',
+    'ac-mechanic',
+    'tv-mechanic',
+    'washing-machine-repair',
+    'computer-repair',
+    'inverter-repair',
+    'car-wash-home',
+    'house-cleaning-basic',
+    'cleaning-advanced',
+    'water-tank-cleaning',
+  };
+  final key = (slug ?? '').toLowerCase();
+  if (!known.contains(key)) return null;
+  return 'assets/services/$key.jpg';
+}
+
+/// Rounded service photo; falls back to the glyph tile for unknown slugs.
+class FxServiceImage extends StatelessWidget {
+  const FxServiceImage({required this.slug, this.size = 46, super.key});
+
+  final String? slug;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = serviceImageFor(slug);
+    if (asset == null) return FxServiceTile(icon: categoryIcon(slug), size: size);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        asset,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) =>
+            FxServiceTile(icon: categoryIcon(slug), size: size),
+      ),
+    );
+  }
+}
+
+/// Muted "coming soon" pill for catalog entries outside the live set.
+class ComingSoonBadge extends StatelessWidget {
+  const ComingSoonBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: dark ? AppColors.charcoalSoft : const Color(0xFFF1EFEA),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.lineOf(context)),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'Coming soon',
+          maxLines: 1,
+          softWrap: false,
+          style: TextStyle(
+            color: AppColors.subOf(context),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Rounded service glyph tile: blue wash + blue icon, or flat primary when
 /// [selected]. Used across booking, catalog, and booking lists.
 class FxServiceTile extends StatelessWidget {
   const FxServiceTile({
@@ -78,19 +154,18 @@ class FxServiceTile extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: filled ? AppColors.primaryGradient : null,
         color: filled
-            ? null
+            ? AppColors.primary
             : (dark
-                  ? AppColors.brightOrange.withValues(alpha: 0.14)
-                  : AppColors.peachSoft),
+                  ? AppColors.primaryBright.withValues(alpha: 0.14)
+                  : AppColors.washSoft),
         borderRadius: BorderRadius.circular(size * 0.32),
         border: filled
             ? null
             : Border.all(
                 color: dark
-                    ? AppColors.brightOrange.withValues(alpha: 0.3)
-                    : AppColors.peach,
+                    ? AppColors.primaryBright.withValues(alpha: 0.3)
+                    : AppColors.wash,
               ),
         boxShadow: selected ? AppShadows.glowSoft : const [],
       ),
@@ -99,13 +174,13 @@ class FxServiceTile extends StatelessWidget {
         size: size * 0.48,
         color: filled
             ? AppColors.white
-            : (dark ? AppColors.amber : AppColors.deepOrange),
+            : (dark ? AppColors.amber : AppColors.primary),
       ),
     );
   }
 }
 
-/// Gradient avatar circle with initials.
+/// Avatar circle with initials (flat brand fill).
 class FxAvatar extends StatelessWidget {
   const FxAvatar({required this.name, this.size = 40, super.key});
 
@@ -118,7 +193,7 @@ class FxAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradientDiagonal,
+        color: AppColors.primary,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,

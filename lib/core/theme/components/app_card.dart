@@ -16,7 +16,6 @@ class AppCard extends StatelessWidget {
     this.testId,
     this.padding,
     this.tint,
-    this.gradient,
     this.borderColor,
     super.key,
   });
@@ -33,11 +32,9 @@ class AppCard extends StatelessWidget {
   /// Overrides the default content padding.
   final EdgeInsetsGeometry? padding;
 
-  /// Flat background override. Ignored when [gradient] is set.
+  /// Background override (hero / promo cards). Title text turns white
+  /// on dark tints; the hairline border is dropped for any tint.
   final Color? tint;
-
-  /// Background gradient override (hero / promo cards).
-  final Gradient? gradient;
 
   /// Border override. Defaults to the theme hairline.
   final Color? borderColor;
@@ -47,6 +44,8 @@ class AppCard extends StatelessWidget {
     final compact = appIsCompact(context);
     final dark = Theme.of(context).brightness == Brightness.dark;
     final pad = padding ?? EdgeInsets.all(compact ? 16 : 20);
+    final tintBg = tint;
+    final lightText = tintBg != null && tintBg.computeLuminance() < 0.5;
 
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +66,7 @@ class AppCard extends StatelessWidget {
                         title!,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontSize: 17,
-                          color: gradient != null
+                          color: lightText
                               ? AppColors.white
                               : AppColors.inkOf(context),
                         ),
@@ -79,7 +78,7 @@ class AppCard extends StatelessWidget {
                         description!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           height: 1.45,
-                          color: gradient != null
+                          color: lightText
                               ? AppColors.white.withValues(alpha: 0.85)
                               : AppColors.subOf(context),
                         ),
@@ -108,15 +107,12 @@ class AppCard extends StatelessWidget {
       width: double.infinity,
       padding: pad,
       decoration: BoxDecoration(
-        color: gradient == null
-            ? (tint ?? AppColors.surfaceOf(context))
-            : null,
-        gradient: gradient,
+        color: tint ?? AppColors.surfaceOf(context),
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: gradient == null
+        border: tint == null
             ? Border.all(color: borderColor ?? AppColors.lineOf(context))
             : null,
-        boxShadow: dark && gradient == null ? null : AppShadows.soft,
+        boxShadow: dark && tint == null ? null : AppShadows.soft,
       ),
       child: body,
     );

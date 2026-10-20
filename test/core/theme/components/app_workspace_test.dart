@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fixvia/core/theme/app_theme.dart';
 import 'package:fixvia/core/theme/components/app_workspace.dart';
 
 import '../../../helpers/test_helpers.dart';
@@ -14,7 +15,8 @@ Widget frame({
   required ValueChanged<int> onSelect,
   int selectedIndex = 0,
   String? roleLabel,
-  Widget? darkBrand,
+  Widget? mark,
+  Widget? railAccount,
 }) {
   return AppWorkspaceFrame(
     destinations: dests(),
@@ -23,9 +25,20 @@ Widget frame({
     body: const Text('Body here'),
     account: const Text('Account here'),
     brand: const Text('Brand here'),
-    darkBrand: darkBrand,
+    mark: mark,
+    railAccount: railAccount,
     roleLabel: roleLabel,
   );
+}
+
+/// Rail buttons whose circle carries the selected blue fill.
+int blueButtons(WidgetTester tester) {
+  return tester
+      .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+      .where(
+        (a) => (a.decoration as BoxDecoration?)?.color == AppColors.primary,
+      )
+      .length;
 }
 
 void main() {
@@ -41,12 +54,23 @@ void main() {
   });
 
   group('AppWorkspaceFrame desktop', () {
-    testWidgets('sidebar lists destinations, tap selects', (tester) async {
+    testWidgets('rail shows icons, tap selects', (tester) async {
       desktopSize(tester);
       var picked = -1;
-      await tester.pumpWidget(shadHarness(frame(onSelect: (i) => picked = i)));
+      await tester.pumpWidget(
+        themeHarness(
+          frame(
+            onSelect: (i) => picked = i,
+            railAccount: const Text('Account here'),
+          ),
+        ),
+      );
+      // Icon-only rail: icons present, labels live in tooltips.
+      expect(find.byIcon(Icons.home), findsOneWidget);
+      expect(find.byIcon(Icons.work), findsOneWidget);
+      expect(find.byIcon(Icons.more_horiz), findsOneWidget);
       for (final label in ['Home', 'Jobs', 'More']) {
-        expect(find.text(label), findsOneWidget);
+        expect(find.text(label), findsNothing);
       }
       expect(find.text('Body here'), findsOneWidget);
       expect(find.text('Account here'), findsOneWidget);
@@ -56,35 +80,32 @@ void main() {
       expect(picked, 2);
     });
 
-    testWidgets('selected tile shows the arrow, others do not', (tester) async {
+    testWidgets('selected button is blue, others are not', (tester) async {
       desktopSize(tester);
       await tester.pumpWidget(
-        shadHarness(frame(onSelect: (_) {}, selectedIndex: 1)),
+        themeHarness(frame(onSelect: (_) {}, selectedIndex: 1)),
       );
-      expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
+      expect(blueButtons(tester), 1);
     });
 
-    testWidgets('darkBrand wins over brand, role label hidden', (tester) async {
+    testWidgets('mark wins over brand, rail account hides when null',
+        (tester) async {
       desktopSize(tester);
       await tester.pumpWidget(
-        shadHarness(
-          frame(
-            onSelect: (_) {},
-            roleLabel: 'Owner',
-            darkBrand: const Text('Dark brand'),
-          ),
+        themeHarness(
+          frame(onSelect: (_) {}, mark: const Text('Mark here')),
         ),
       );
-      expect(find.text('Dark brand'), findsOneWidget);
+      expect(find.text('Mark here'), findsOneWidget);
       expect(find.text('Brand here'), findsNothing);
-      expect(find.text('Owner'), findsNothing);
+      expect(find.text('Account here'), findsNothing);
     });
 
     testWidgets('empty destinations and out-of-range index do not crash',
         (tester) async {
       desktopSize(tester);
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           AppWorkspaceFrame(
             destinations: const [],
             selectedIndex: 0,
@@ -96,11 +117,12 @@ void main() {
         ),
       );
       expect(find.text('B'), findsOneWidget);
+      expect(blueButtons(tester), 0);
 
       await tester.pumpWidget(
-        shadHarness(frame(onSelect: (_) {}, selectedIndex: 99)),
+        themeHarness(frame(onSelect: (_) {}, selectedIndex: 99)),
       );
-      expect(find.byIcon(Icons.arrow_forward_rounded), findsNothing);
+      expect(blueButtons(tester), 0);
     });
   });
 
@@ -113,7 +135,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       var picked = -1;
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           frame(onSelect: (i) => picked = i, roleLabel: 'Owner'),
         ),
       );
@@ -132,7 +154,7 @@ void main() {
     testWidgets('narrow phones drop the role badge', (tester) async {
       compactSize(tester);
       await tester.pumpWidget(
-        shadHarness(
+        themeHarness(
           frame(onSelect: (_) {}, roleLabel: 'Owner'),
         ),
       );
@@ -143,7 +165,7 @@ void main() {
 
     testWidgets('role badge hidden when roleLabel is null', (tester) async {
       compactSize(tester);
-      await tester.pumpWidget(shadHarness(frame(onSelect: (_) {})));
+      await tester.pumpWidget(themeHarness(frame(onSelect: (_) {})));
       expect(find.text('Brand here'), findsOneWidget);
     });
   });
